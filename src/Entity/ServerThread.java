@@ -9,7 +9,7 @@ public class ServerThread extends Thread{
 	
 	public ServerThread(Socket client) {
 		this.client=client;
-	}
+	} 
 	public void run() {
 		while(true) {
 			try {

@@ -2,7 +2,7 @@ package Entity;
 
 public class Guidata extends Data{
 	
-	private String jftype;		//ÏìÓ¦ÓÃ»§µÇÂ¼ºÍ×¢²áÊ§°Ü
+	private String jftype;		//è¡¨ç¤ºç™»å½•æˆ–æ³¨å†Œå¤±è´¥çš„å›žåº”
 
 	public Guidata(String type,String jftype) {
 		super(type);
