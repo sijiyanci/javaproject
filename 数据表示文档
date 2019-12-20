@@ -1,0 +1,8 @@
+server->client：
+以下都继承Data，数据成员type：用来表示数据包是什么类型；
+1、Guidata：回应登录注册失败的数据类->client重新显示新的jframe；（发给个人的）
+   数据成员：String jftype:表示是应显示登录还是注册界面；
+2、Signindata:回应登录注册成功的数据类->client显示chatroom的jframe;（发给个人的）
+   数据成员：String[] 已在线人名
+3、Message:
+  (1)
