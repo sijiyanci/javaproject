@@ -1,8 +1,28 @@
 server->client：
-以下都继承Data，数据成员type：用来表示数据包是什么类型；
+继承Data：
+   数据成员String type：用来表示数据包是什么类型；
 1、Guidata：回应登录注册失败的数据类->client重新显示新的jframe；（发给个人的）
    数据成员：String jftype:表示是应显示登录还是注册界面；
 2、Signindata:回应登录注册成功的数据类->client显示chatroom的jframe;（发给个人的）
    数据成员：String[] 已在线人名
-3、Message:
-  (1)
+3、Quitdata:回应退出聊天室的数据类->client终止receive thread；（发给某个人）
+4、Message:
+   数据成员：String mtype:表示是以下哪种类型；
+            String userfrom:表示是谁发的；
+            String words：表示说的话；
+  (1)quit:回应某人离开聊天室，让其他用户在消息框显示“某人退出”（发给所有人）
+  (2)signin: 回应某人进入聊天室，让其他用户在消息框显示“某人进入”（发给所有人）
+  (3)normal:发某人的话给所有用户（发给所有人）；
+  (4)anonymous:发某人的匿名消息给所有用户(发给所有人)；
+  (5)private:发某人的消息给某个用户（发给个人）；
+      数据成员：String userto:表示发给谁；
+   
+   client->server:
+   1、information:登录注册的请求的数据类->server进行检查；
+      数据成员：String username:表示用户名；
+               String password：表示密码；
+   2、Quitdata: 请求退出聊天室的数据类->server进行操作后响应同一个Quitdata；
+   3、Message：
+     (3)
+     (4)
+     (5)
