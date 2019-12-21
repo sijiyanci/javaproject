@@ -1,30 +1,40 @@
 package Entity;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.io.IOException;
-import java.io.ObjectInputStream;
+
 public class ServerThread extends Thread{
 	private Socket client;
-	private static ArrayList<Socket> serversockets=new ArrayList<Socket>();
+	private String username;
+	
 	
 	public ServerThread(Socket client) {
 		this.client=client;
 	} 
+	public Socket getClient(){
+		return client;
+	}
+	public String getUsername(){
+		return username;
+	}
+	public void setUsername(String username){
+		this.username=username;
+	}
+
 	public void run() {
 		while(true) {
 			try {
-				Data indata=serverReceive();
-				
+				Data indata=DataMenager.serverReceive(this);
+				Package packagedata=DataMenager.resolveData(this, indata);
+				if(!DataMenager.serverWrite(this, packagedata)){
+					client.close();
+					break;
+				}
 			}catch(Exception e) {
 				e.printStackTrace();
 			}
 		}
 	}
 	
-	public Data serverReceive() throws Exception{
-		ObjectInputStream ois = new ObjectInputStream(client.getInputStream());
-		Data indata=(Data)ois.readObject();
-		return indata;
-	}
+
+	
 	
 }

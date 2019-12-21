@@ -5,7 +5,8 @@ class Response extends Data{
     private String username;
     private boolean state;
     private String[] userlist;
-
+    
+    public Response(){}
     public Response(String type,String restype,String username
         ,boolean state,String[] userlist){
             super(type);

@@ -5,6 +5,7 @@ public class Message extends Data{
 	private String userfrom;
 	private String userto;
 
+	public Message(){}
 	public Message(String type,String userfrom,String userto,String words) {
 		super(type);
 		this.words=words;

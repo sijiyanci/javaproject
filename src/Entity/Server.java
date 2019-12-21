@@ -6,6 +6,7 @@ import java.io.IOException;
 public class Server {
 	public static int port=8000;
 	public static ServerSocket server;
+	public static StorageManager storagemanager=new StorageManager(Path.path);
 	public static void main(String[] arg) {
 		System.out.println("Chatroom Server:");
 		try {

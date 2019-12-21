@@ -2,28 +2,22 @@ package Entity;
 
 public class Require extends Data{
     private String reqtype;
-    private String username;
-    private String password;
-
-    public Require(String type,String reqtype,String username,String password){
+    private User user;
+    public Require(){}
+    public Require(String type,String reqtype,User user){
         super(type);
         this.reqtype=reqtype;
-        this.username=username;
-        this.password=password;
+        this.user=user;
     }
-    public Require(String type,String reqtype,String username){
+    public Require(String type,String reqtype){
         super(type);
         this.reqtype=reqtype;
-        this.username=username;
     }
 
     public String getReqtype(){
         return reqtype;
     }
-    public String getUsername(){
-        return username;
-    }
-    public String getPassword(){
-        return password;
+    public User getUser(){
+        return user;
     }
 }
