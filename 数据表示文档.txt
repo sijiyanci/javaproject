@@ -47,7 +47,7 @@ server->client
 1、response回应类：（需要服务端进行处理）
    数据成员：String restype:服务端表示是登录、注册、退出（回应退出是为了终止客户端的receive thread）
                String username：
-               boolean state：表示注册成功或失败
+               boolean state：表示注册成功或失败,（虽然还没想过，但也可能表示退出失败）
                String[] userlist:
    （1）回应登录：
       登录/注册成功：
