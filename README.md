@@ -1,2 +1,0 @@
-# javaproject
-chat room
