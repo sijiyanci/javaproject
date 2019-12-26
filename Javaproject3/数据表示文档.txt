@@ -59,4 +59,8 @@ server->client
 （3）
 
 
+<<<<<<< HEAD
 sdfsdf
+=======
+remote
+>>>>>>> c2390b992ebe07147d311e3efe1e8e898b151197
