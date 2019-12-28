@@ -46,7 +46,7 @@ public class Login extends JFrame{
 	public static Socket socket;
 	
 	public static void main(String[] args) {
-		try {
+	/*	try {
 			socket = new Socket(InetAddress.getLocalHost().getHostName(), 9876);
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
@@ -54,7 +54,7 @@ public class Login extends JFrame{
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		}*/
 		
 		Login frame = new Login();
 		frame.setVisible(true);
@@ -137,7 +137,7 @@ public class Login extends JFrame{
 		btnLogin.setPreferredSize(new Dimension(170, 40));
 		btnLogin.setFocusPainted(false);
 		contentPane.add(btnLogin);
-		btnLogin.addActionListener( new Signin(socket)
+		btnLogin.addActionListener( new Signin()
 			/*	 new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				String name = userName.getText();
@@ -178,33 +178,37 @@ public class Login extends JFrame{
 		contentPane.add(btnRegister);
 		btnRegister.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				new SignUp(Login.socket);		//显示注册界面
+				setVisible(false);
+				new SignUp();		//显示注册界面
 			}
 		});
 	}
+	
+	
 	//----------------------------------------------------
 	class Signin implements ActionListener {
-		private Socket socket;
+	/*	private Socket socket;
 		public Signin(Socket socket) {
 			this.socket = socket;
-		}
+		}*/
 		public void actionPerformed(ActionEvent e) {
+			
 			String name = userName.getText();
 			String pwd = String.valueOf(password.getPassword());
 			// 请求登录
 			try {
-				//Socket socket = new Socket(InetAddress.getLocalHost().getHostName(), 9876);
-				ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+				Socket socket_ = new Socket(InetAddress.getLocalHost().getHostName(), 9876);
+				ObjectOutputStream oos = new ObjectOutputStream(socket_.getOutputStream());
 				Require temp=new Require("Require","Signin",new User(name,pwd));
 				System.out.println("[reqtype : Signin, username : " + name +", password : "+pwd+" ]");
 				oos.writeObject(temp);
-				ObjectInputStream ios = new ObjectInputStream(socket.getInputStream());
+				ObjectInputStream ios = new ObjectInputStream(socket_.getInputStream());
 				Response receive=(Response)ios.readObject();
 				if(receive.getState()==true) {
 					System.out.println("you have enter the chatroom");
-					//Login.socket=socket;
+					socket=socket_;
 					setVisible(false);
-					new ChatRoom(name,socket);
+					new ChatRoom(name,socket,receive.getUserlist());
 				} else {
 					JOptionPane.showMessageDialog(new JFrame(), "用户名或密码错误！", "错误", JOptionPane.ERROR_MESSAGE);
 				}

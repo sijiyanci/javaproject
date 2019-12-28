@@ -11,7 +11,7 @@ public class Server {
 	public static void main(String[] arg) {
 		System.out.println("Chatroom Server:");
 		try {
-			System.out.println("Initialize port...");
+			System.out.println("Initialize port!..");
 			server=new ServerSocket(port);
 			System.out.println("Listening at port "+port+"...");
 			while(true) {

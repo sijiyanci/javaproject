@@ -8,6 +8,7 @@ import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.InetAddress;
 import java.net.Socket;
 
 import javax.swing.JButton;
@@ -32,10 +33,9 @@ public class SignUp extends JFrame{
 	private JLabel lablePwd2;
 	private JButton btnRegister;
 	
-	//private Socket socket;
+	private Socket socket;
 	
-	public SignUp(Socket socket) {
-		//this.socket = socket;
+	public SignUp() {
 		
 		Container con = this.getContentPane();
 		// 用户号码登录输入框
@@ -65,7 +65,7 @@ public class SignUp extends JFrame{
 		btnRegister.setBackground(Color.LIGHT_GRAY);
 		btnRegister.setBounds(200, 220, 150, 50);
 		btnRegister.setFont(new Font("宋体", Font.BOLD, 20));
-		btnRegister.addActionListener(new Register(socket)
+		btnRegister.addActionListener(new Register()
 				/*new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				String name = userName.getText();
@@ -119,29 +119,34 @@ public class SignUp extends JFrame{
 		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
 	}
-
+	
+//-----------------------------------------
 	// 注册方法
 	class Register implements ActionListener  {
-		private Socket socket;
+	/*	private Socket socket;
 		
 		public Register(Socket socket) {
 			this.socket = socket;
-		}
+		}*/
 		public void actionPerformed(ActionEvent e) {
 			String name = userName.getText();
 			String pwd1 = String.valueOf(password.getPassword());
 			String pwd2 = String.valueOf(password2.getPassword());
 			if (pwd1.equals(pwd2)) {
 				try {
-					ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+					Socket socket_ = new Socket(InetAddress.getLocalHost().getHostName(), 9876);
+					ObjectOutputStream oos = new ObjectOutputStream(socket_.getOutputStream());
 					Require temp=new Require("Require","Signup",new User(name,pwd1));
 					System.out.println("[reqtype : Signup, username : " + name +", password : "+pwd1+" ]");
 					oos.writeObject(temp);
-					ObjectInputStream ios = new ObjectInputStream(socket.getInputStream());
+					ObjectInputStream ios = new ObjectInputStream(socket_.getInputStream());
 					Response receive=(Response)ios.readObject();
 					if(receive.getState()==true) {
 						JOptionPane.showMessageDialog(new JFrame(),
 								"注册成功！\n请记住您的账号和密码", "恭喜", JOptionPane.CLOSED_OPTION);
+						socket = socket_;
+						setVisible(false);
+						new ChatRoom(name,socket,receive.getUserlist());
 					} else {
 						JOptionPane.showMessageDialog(new JFrame(), "注册失败,换个用户名试试吧！", "错误",
 								JOptionPane.ERROR_MESSAGE);

@@ -1,12 +1,95 @@
 package Entity;
-
+import net.sf.json.JSONObject;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class Client {
 	public static String username;
 	public static Socket socket;
+	public static JSONObject reqPackage(String type,String reqtype,User user) {
+		JSONObject reqdata=new JSONObject();
+		reqdata.put("Type", type);
+		reqdata.put("Reqtype", reqtype);
+		reqdata.put("User", user);
+		return reqdata;
+	}
+	public static JSONObject mesPackage(String type,String way,ArrayList<String> fctype,String texttype
+			,String userfrom,ArrayList<String> userto,String words) {
+		JSONObject mesdata=new JSONObject();
+		mesdata.put("Type", type);
+		mesdata.put("Way", way);
+		mesdata.put("Fctype", fctype);
+		mesdata.put("Texttype", texttype);
+		mesdata.put("Userfrom", userfrom);
+		mesdata.put("Userto", userto);
+		mesdata.put("Words", words);
+		return mesdata;
+	}
+	public static JSONObject mesPackage(String type,String way,ArrayList<String> fctype,String texttype
+			,String userfrom,ArrayList<String> userto) {
+		JSONObject mesdata=new JSONObject();
+		mesdata.put("Type", type);
+		mesdata.put("Way", way);
+		mesdata.put("Fctype", fctype);
+		mesdata.put("Texttype", texttype);
+		mesdata.put("Userfrom", userfrom);
+		mesdata.put("Userto", userto);
+		return mesdata;
+	}
+	private static JSONObject receiveBytes(Socket server,String texttype) throws Exception{
+    	DataInputStream dis = new DataInputStream(server.getInputStream());
+    	String filename = dis.readUTF();
+        long filelength = dis.readLong();
+        File file=new File("./src/"+Client.username+"/"+filename+"."+texttype.toLowerCase());
+        BufferedOutputStream fos=new BufferedOutputStream(new FileOutputStream(file,true));
+        byte[] bytes = new byte[1024];    
+        long times = (filelength%1024==0)?filelength/1024:filelength/1024+1;
+        while(times!=0) {
+        	System.out.println(times);
+        	times--;
+        	
+        	int length=dis.read(bytes, 0, bytes.length);
+        	fos.write(bytes, 0, length);
+
+        	fos.flush();
+        	}  
+        fos.close();
+        JSONObject temp=new JSONObject();
+        temp.put("Filename", filename);
+        temp.put("Filelength", filelength);
+
+        System.out.print(filename+" ");
+        System.out.println(filelength);
+        return temp;
+    }
+	private static void writeBytes(Socket server,String texttype) throws Exception{
+    	DataOutputStream dos = new DataOutputStream(server.getOutputStream());
+    	File file=new File("./src/user1/user1."+texttype.toLowerCase());
+    	String filename=file.getName();
+    	long filelength=file.length();
+    	BufferedInputStream fis=new BufferedInputStream(new FileInputStream(file));
+    	byte[] bytes = new byte[1024];    
+        long times = (filelength%1024==0)?filelength/1024:filelength/1024+1;;
+        
+        dos.writeUTF(filename);
+        dos.flush();
+        dos.writeLong(filelength);
+        dos.flush();
+        
+        while(times!=0) {
+        	times--;
+        	int length=fis.read(bytes, 0, bytes.length);
+        	
+        	dos.write(bytes, 0, length);
+        	dos.flush();
+        }
+        System.out.println(new String(bytes));
+        System.out.print(filename+" ");
+        System.out.println(filelength);
+        fis.close();
+    }
 	public static void main(String[] arg) throws Exception{
 		
 		System.out.println("start");
@@ -23,15 +106,26 @@ public class Client {
 			System.out.print("password : ");
 			password=br.readLine();
 			System.out.println("]");
-			Require temp=new Require("Require",reqtype,new User(username,password));
-			oos.writeObject(temp);
+			//Require temp=new Require("Require",reqtype,new User(username,password));
+			JSONObject temp=reqPackage("Require",reqtype,new User(username,password));
+
+			oos.writeObject(temp.toString());
 			ObjectInputStream ios = new ObjectInputStream(socket.getInputStream());
-			Response receive=(Response)ios.readObject();
-			/*System.out.println(receive.toString());*/
-			if(receive.getState()==true) {
+			String receive=(String)ios.readObject();
+			JSONObject rdata=JSONObject.fromObject(receive);
+			System.out.println(rdata.toString());
+			if((Boolean)rdata.get("State")==true) {
 				System.out.println("you have enter the chatroom");
-				Client.username=receive.getUsername();
+				Client.username=(String)rdata.get("Username");
 				Client.socket=socket;
+				
+				File file=new File("./src/"+Client.username,Client.username);
+				File fileparent=file.getParentFile();
+				if(!file.exists()) {
+					System.out.println("exist");
+					fileparent.mkdir();
+				}
+
 				break;
 			}else {
 				System.out.println("your username or password error");
@@ -43,29 +137,38 @@ public class Client {
 					while(true) {
 						try {
 							ObjectInputStream ois=new ObjectInputStream(Client.socket.getInputStream());
-							Data data=(Data)ois.readObject();
-							
+							String datastr=(String)ois.readObject();
+							JSONObject data=JSONObject.fromObject(datastr);
 							System.out.println("");
-							if(data.getType().equals("Response")) {
-								Response resdata=(Response)data;
+							if(data.get("Type").equals("Response")) {
+								//Response resdata=(Response)data;
 								//signin & signup 是处理其他人收到某人的登录注册成功信息，失败的话不会收到；
-								if(resdata.getRestype().equals("Signin")||resdata.getRestype().equals("Signup")) {
-									System.out.println(resdata.getUsername()+" enters this chatroom");
-									System.out.println("userlist = "+Response.toString(resdata.getUserlist()));
-								}else if(resdata.getRestype().equals("Quit")){
-									if(resdata.getUsername().equals(Client.username)) {
+								if(data.get("Reqtype").equals("Signin")||data.get("Reqtype").equals("Signup")) {
+									System.out.println(data.get("Username")+" enters this chatroom");
+									
+									System.out.println("usernamelist = "+data.get("Usernamelist").toString());//！！！
+								
+								}else if(data.get("Reqtype").equals("Quit")){
+									if(data.get("Username").equals(Client.username)) {
 										System.out.println("you quit");
 										break;
 									}else {
-										System.out.println(resdata.getUsername()+" exit the chatroom");
+										System.out.println(data.get("Username")+" exit the chatroom");
 									}
 									
 								}
-							}else if(data.getType().equals("Message")) {
-								Message mesdata=(Message)data;
-								System.out.println(mesdata.getUserfrom()+" say : "+mesdata.getWords());
+							}else if(data.get("Type").equals("ClientMessage")) {
+								//Message mesdata=(Message)data;
+								if(data.get("Texttype").equals("Words")) {
+									System.out.println(data.get("Userfrom")+" say : "+data.get("Words"));
+								}else {
+									receiveBytes(Client.socket,(String)data.get("Texttype"));
+								}
+								
 							}
 							
+							System.out.println("[");
+							System.out.print("type : ");
 							//socket.shutdownInput();
 							//ois.close();
 						}catch(Exception e) {
@@ -87,18 +190,55 @@ public class Client {
 							System.out.print("type : ");
 							type=br.readLine();
 							if(type.equals("Require")) {
-								Require reqdata=new Require("Require","Quit",new User(Client.username,"uuu"));
-								oos.writeObject(reqdata);
+								//Require reqdata=new Require("Require","Quit",new User(Client.username,"uuu"));
+								JSONObject reqdata=reqPackage("Require","Quit",new User(Client.username,"***"));
+								oos.writeObject(reqdata.toString());
 								
 								//break;
-							}else if(type.equals("Message")) {
-								String userto,words;
-								System.out.print("userto : ");
-								userto=br.readLine();
-								System.out.print("words : ");
-								words=br.readLine();
-								Message mesdata=new Message("Message",Client.username,userto,words);
-								oos.writeObject(mesdata);
+							}else if(type.equals("ServerMessage")) {
+								String way,texttype="Words";
+								String words;
+								ArrayList<String> fctype=new ArrayList<String>();
+								ArrayList<String> userto=new ArrayList<String>();
+								System.out.print("way : ");
+								way=br.readLine();
+								System.out.println("fctype(end with !) : ");
+								String temp;
+								while(!(temp=br.readLine()).equals("!")) {
+									fctype.add(temp);
+									System.out.print("    ");
+								}
+								
+								System.out.print("texttype : ");
+								texttype=br.readLine();
+								System.out.println("userfrom : "+Client.username);
+								
+								if(way.equals("Some")) {
+									System.out.println("usertos(for Some,end with !) : ");
+									
+									System.out.print("    ");
+									while(!(temp=br.readLine()).equals("!")) {
+										userto.add(temp);
+										System.out.print("    ");
+									}
+								}else if(way.equals("One")){
+									System.out.print("userto(for One) : ");
+									
+									temp=br.readLine();
+									userto.add(temp);
+								}
+								System.out.print("data : ");
+								JSONObject mesdata;
+								if(texttype.equals("Words")) {
+									words=br.readLine();
+									mesdata=mesPackage("ServerMessage",way,fctype,texttype,Client.username,userto,words);
+								}else {
+									mesdata=mesPackage("ServerMessage",way,fctype,texttype,Client.username,userto);
+								}
+								oos.writeObject(mesdata.toString());
+								if(!texttype.equals("Words")) {
+									writeBytes(Client.socket,texttype);
+								}
 							}
 							System.out.println("]");
 							

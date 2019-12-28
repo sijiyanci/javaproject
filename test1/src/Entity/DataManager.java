@@ -1,9 +1,9 @@
 package Entity;
-
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 import java.util.ArrayList;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
+
 import java.net.Socket;
 //serverthread收到数据后，交给datamanager进行解析和打包，然后给回
 //serverthread进行发�?�数�?
@@ -12,127 +12,287 @@ class DataMenager{
     public static ArrayList<ServerThread> serverthreads=new ArrayList<ServerThread>();
 
 
-    public static Package resolveData(ServerThread current,Data data){
-        Package newone=new Package();
-        switch(data.getType()){
+    public static JSONObject resolveData(ServerThread current,JSONObject data)throws Exception{
+    	JSONObject newone=new JSONObject();
+        switch((String)data.get("Type")){
             case "Require":
-                Require reqdata=(Require)data;
-                newone=reqHandler(current,reqdata);
+                //Require reqdata=(Require)data;
+                newone=reqHandler(current,data);
                 break;
-            case "Message":
-                Message mesdata=(Message)data;
-                newone=mesHandler(mesdata);
+            case "ServerMessage":
+                //Message mesdata=(Message)data;
+                newone=mesHandler(current,data);
                 break;
             default:System.out.println("no type");
             	break;
         }
         return newone;
     }
-    private static String[] getOnlineUser(){
-		String[] userlist=new String[serverthreads.size()];
+    private static ArrayList<String> getOnlineUser(){
+    	ArrayList<String> usernamelist=new ArrayList<String>();
 		for(int i=0;i<serverthreads.size();i++){
-			userlist[i]=serverthreads.get(i).getUsername();
+			usernamelist.add(serverthreads.get(i).getUsername());
 		}
-		return userlist;
+		return usernamelist;
+    }
+    private static JSONObject resPackage(String type,String reqtype,String username,boolean state
+    		,ArrayList<String> usernamelist) {
+    	JSONObject resdata=new JSONObject();
+    	resdata.put("Type", type);
+    	resdata.put("Reqtype", reqtype);
+    	resdata.put("Username", username);
+    	resdata.put("State", state);
+    	resdata.put("Usernamelist", usernamelist);
+    	return resdata;
     }
     
-    private static Package reqHandler(ServerThread current,Require reqdata){
-        Package newone=new Package();
-        ArrayList<Integer> index=new ArrayList<Integer>();
-        String[] userlist=new String[0];
-        if(reqdata.getReqtype().equals("Signup")){
-            if(Server.storagemanager.addUser(reqdata.getUser())){
+    private static JSONObject middlePackage(ArrayList<Integer> indexlist,JSONObject data,String mode) {
+    	JSONObject newone=new JSONObject();
+    	newone.put("Indexlist", indexlist);
+    	newone.put("Data", data);
+    	newone.put("Mode", mode);
+    	return newone;
+    }
+    private static JSONObject middlePackage(ArrayList<Integer> indexlist,JSONObject data,String mode,JSONObject datahead) {
+    	JSONObject newone=new JSONObject();
+    	newone.put("Indexlist", indexlist);
+    	newone.put("Data", data);
+    	newone.put("Mode", mode);
+    	newone.put("Datahead", datahead);
+    	return newone;
+    }
+    
+    private static JSONObject reqHandler(ServerThread current,JSONObject reqdata){
+    	JSONObject newone=new JSONObject();
+        ArrayList<Integer> indexlist=new ArrayList<Integer>();
+        ArrayList<String> usernamelist=new ArrayList<String>();
+        //System.out.println(reqdata.get("User").toString());
+
+        User user=(User)JSONObject.toBean((JSONObject)reqdata.get("User"),User.class);
+
+       // User user=(User)(reqdata.get("User"));
+        if(((String)reqdata.get("Reqtype")).equals("Signup")){
+        	
+            if(Server.storagemanager.addUser(user)){
 
                 serverthreads.add(current);
-                current.setUsername(reqdata.getUser().getUsername());
+                current.setUsername(user.getUsername());
 
-                userlist=getOnlineUser();
-                Response temp=new Response("Response", "Signup", reqdata.getUser().getUsername()
-                , true, userlist);
+                usernamelist=getOnlineUser();
+                JSONObject resdata=resPackage("Response", "Signup", user.getUsername()
+                , true, usernamelist);
+                //Response temp=new Response("Response", "Signup", reqdata.getUser().getUsername()
+                //, true, userlist);
                 for(int i=0;i<serverthreads.size();i++){
-                    index.add(i);
+                    indexlist.add(i);
                 }
-                newone = new Package(index, (Data)temp,"o");
+                newone = middlePackage(indexlist, resdata,"o");
             }else{
-                Response temp=new Response("Response","Signup",reqdata.getUser().getUsername()
-                ,false,userlist);
-                newone = new Package(index,temp,"q");
+            	JSONObject resdata=resPackage("Response","Signup",user.getUsername()
+                ,false,usernamelist);
+                //Response temp=new Response("Response","Signup",reqdata.getUser().getUsername()
+                //,false,userlist);
+            	newone = middlePackage(indexlist,resdata,"q");
             }
-        }else if(reqdata.getReqtype().equals("Signin")){
-            if(Server.storagemanager.checkUser(reqdata.getUser())){
+        }else if(((String)reqdata.get("Reqtype")).equals("Signin")){
+        	
+            if(Server.storagemanager.checkUser(user)){
 
                 serverthreads.add(current);
-                current.setUsername(reqdata.getUser().getUsername());
+                current.setUsername(user.getUsername());
 
-                userlist=getOnlineUser();
-                Response temp=new Response("Response", "Signin", reqdata.getUser().getUsername()
-                , true, userlist);
+                usernamelist=getOnlineUser();
+                JSONObject resdata=resPackage("Response", "Signin", user.getUsername()
+                , true, usernamelist);
+                //Response temp=new Response("Response", "Signin", reqdata.getUser().getUsername()
+                //, true, userlist);
                 for(int i=0;i<serverthreads.size();i++){
-                    index.add(i);
+                    indexlist.add(i);
                 }
-                newone = new Package(index, (Data)temp,"o");
+                newone = middlePackage(indexlist, resdata,"o");
             }else{
-                Response temp=new Response("Response","Signin",reqdata.getUser().getUsername()
-                ,false,userlist);
-                newone = new Package(index,temp,"q");
+            	JSONObject resdata=resPackage("Response","Signin",user.getUsername()
+                ,false,usernamelist);
+              //  Response temp=new Response("Response","Signin",reqdata.getUser().getUsername()
+              //  ,false,userlist);
+                newone = middlePackage(indexlist,resdata,"q");
             }
-        }else if(reqdata.getReqtype().equals("Quit")){
+        }else if(((String)reqdata.get("Reqtype")).equals("Quit")){
             serverthreads.remove(current);
-            Response temp=new Response("Response","Quit",reqdata.getUser().getUsername()
-            ,true,userlist);
+            JSONObject resdata=resPackage("Response","Quit",user.getUsername()
+            ,true,usernamelist);
+            //Response temp=new Response("Response","Quit",reqdata.getUser().getUsername()
+            //,true,userlist);
             for(int i=0;i<serverthreads.size();i++){
-                index.add(i);
+                indexlist.add(i);
             }
-            newone = new Package(index, (Data)temp,"oq");
+            newone = middlePackage(indexlist, resdata,"oq");
         }
 
         return newone;
     }
 
-
-    private static Package mesHandler(Message mesdata){
-        ArrayList<Integer> index=new ArrayList<Integer>();
-        if(mesdata.getUserto().equals("*")){
-            for(int i=0;i<serverthreads.size();i++){
-                index.add(i);
-            }
-        }else{
-            for(ServerThread i:serverthreads){
-                if(i.getUsername().equals(mesdata.getUserto())){
-                    index.add(serverthreads.indexOf(i));
+    private static ArrayList<Integer> mesWayResolve(JSONObject mesdata){
+    	ArrayList<Integer> indexlist=new ArrayList<Integer>();
+    	String way=(String)mesdata.get("Way");
+    	ArrayList<String> usernamelist=getOnlineUser();
+    	if(way.equals("All")) {
+    		for(int i=0;i<usernamelist.size();i++){
+                if(!usernamelist.get(i).equals((String)mesdata.get("Userfrom"))) {
+                	indexlist.add(i);
                 }
             }
-        }
-        return new Package(index,(Data)mesdata,"o");
-    }
-
-    public static Data serverReceive(ServerThread current) throws Exception{
-		ObjectInputStream ois = new ObjectInputStream(current.getClient().getInputStream());
-		Data indata=(Data)ois.readObject();
-		return indata;
+    	}else if(way.equals("Some")||way.equals("One")) {
+    		JSONArray userto=(JSONArray)mesdata.get("Userto");
+    		for(int i=0;i<userto.length();i++) {
+    			for(int j=0;j<usernamelist.size();j++){
+    				if(userto.get(i).equals(usernamelist.get(j)))
+    					indexlist.add(j);
+                }
+    		}
+//    		for(int i=0;i<usernamelist.size();i++)
+//    			if(usernamelist.get(i).equals((String)mesdata.get("Userfrom"))){
+//                    indexlist.add(i);
+//                }
+    	}
+    	return indexlist;
     }
     
-    public static boolean serverWrite(ServerThread current,Package packagedata) throws Exception{
+    private static JSONObject mesPackage(String type,String way,String texttype,String userfrom,String words) {
+    	JSONObject resmes=new JSONObject();
+    	resmes.put("Type", type);
+    	resmes.put("Way", way);
+    	resmes.put("Texttype", texttype);
+    	resmes.put("Userfrom", userfrom);
+    	resmes.put("Words", words);
+    	return resmes;
+    }
+    private static JSONObject mesPackage(String type,String way,String texttype,String userfrom) {
+    	JSONObject resmes=new JSONObject();
+    	resmes.put("Type", type);
+    	resmes.put("Way", way);
+    	resmes.put("Texttype", texttype);
+    	resmes.put("Userfrom", userfrom);
+    	return resmes;
+    }
+    
+    private static void anonymous_handle(JSONObject resmes) {
+    	resmes.remove("Userfrom");
+    	resmes.put("Userfrom","XXX");
+    }
+    
+    private static JSONObject mesHandler(ServerThread current,JSONObject mesdata)throws Exception{
+    	ArrayList<Integer> indexlist=mesWayResolve(mesdata);
+    	JSONObject resmes;
+    	JSONObject datahead=new JSONObject();
+    	if(mesdata.get("Texttype").equals("Words")) {
+    		resmes=mesPackage("ClientMessage",(String)mesdata.get("Way"),
+    				(String)mesdata.get("Texttype"),(String)mesdata.get("Userfrom"),(String)mesdata.getString("Words"));
+    	}else {
+    		datahead=receiveBytes(current);
+    		resmes=mesPackage("ClientMessage",(String)mesdata.get("Way"),
+    				(String)mesdata.get("Texttype"),(String)mesdata.get("Userfrom"));
+    	}
+    	
+        JSONArray fctype=(JSONArray)mesdata.get("Fctype");
+        for(int i=0;i<fctype.length();i++) {
+        	switch(fctype.getString(i)) {
+        	case "Anonymous":
+        		anonymous_handle(resmes);
+        		break;
+        	default:
+        		System.out.println("no function");
+        		break;
+        }
+        }
+        if(mesdata.get("Texttype").equals("Words")) {
+        	return middlePackage(indexlist,resmes,"o");
+        }else {
+        	return middlePackage(indexlist,resmes,"o",datahead);
+        }
+    }
+
+    public static JSONObject serverReceive(ServerThread current) throws Exception{
+		ObjectInputStream ois = new ObjectInputStream(current.getClient().getInputStream());
+		String indata=(String)ois.readObject();
+		JSONObject data=JSONObject.fromObject(indata);
+		return data;
+    }
+    
+    private static JSONObject receiveBytes(ServerThread current) throws Exception{
+    	DataInputStream dis = new DataInputStream(current.getClient().getInputStream());
+    	String filename = dis.readUTF();
+        long filelength = dis.readLong();
+        File file=new File("./src/cache/cache");
+        BufferedOutputStream fos=new BufferedOutputStream(new FileOutputStream(file));
+        byte[] bytes = new byte[1024];    
+        long times = (filelength%1024==0)?filelength/1024:filelength/1024+1;
+        while(times!=0) {
+        	times--;
+        	int length=dis.read(bytes, 0, bytes.length);
+        	fos.write(bytes, 0, length);
+        	fos.flush();
+        	}  
+        fos.close();
+        JSONObject temp=new JSONObject();
+        temp.put("Filename", filename);
+        temp.put("Filelength", filelength);
+        return temp;
+    }
+    
+    private static void writeBytes(ServerThread other,JSONObject datahead) throws Exception{
+    	DataOutputStream dos = new DataOutputStream(other.getClient().getOutputStream());
+    	String filename=(String)datahead.get("Filename");
+    	long filelength=datahead.getLong("Filelength");
+    	File file=new File("./src/cache/cache");
+    	BufferedInputStream fis=new BufferedInputStream(new FileInputStream(file));
+    	byte[] bytes = new byte[1024];    
+    	long times = (filelength%1024==0)?filelength/1024:filelength/1024+1;
+        
+        dos.writeUTF(filename);
+        dos.flush();
+        dos.writeLong(filelength);
+        dos.flush();
+        
+        while(times!=0) {
+        	times--;
+        	int length=fis.read(bytes, 0, bytes.length);
+        	dos.write(bytes, 0, length);
+        	dos.flush();
+        }
+        fis.close();
+    }
+    
+    @SuppressWarnings("unchecked")
+	public static boolean serverWrite(ServerThread current,JSONObject packagedata) throws Exception{
 		
-            if(packagedata.getState().equals("q")||packagedata.getState().equals("oq")){
+            if(((String)packagedata.get("Mode")).equals("q")||((String)packagedata.get("Mode")).equals("oq")){
             	
                 Socket temp=current.getClient();
                 ObjectOutputStream oos=new ObjectOutputStream(temp.getOutputStream());
-                oos.writeObject(packagedata.getData());
+                oos.writeObject(packagedata.get("Data").toString());
                
             }
             
-            if(packagedata.getState().equals("o")||packagedata.getState().equals("oq")){
-                for(Integer i:packagedata.getIndex()){
-                	
-                    Socket temp=serverthreads.get(i.intValue()).getClient();
+            if(((String)packagedata.get("Mode")).equals("o")||((String)packagedata.get("Mode")).equals("oq")){
+            	//ArrayList<Integer> array=(ArrayList<Integer>)JSONObject.toBean(packagedata, ArrayList<Integer>.class)
+            	JSONArray array=(JSONArray)(packagedata.get("Indexlist"));
+            	for(int i=0;i<array.length();i++) {
+            		Socket temp=serverthreads.get(array.getInt(i)).getClient();
                     ObjectOutputStream oos=new ObjectOutputStream(temp.getOutputStream());
-                    oos.writeObject(packagedata.getData());
-                }
+                     oos.writeObject(packagedata.get("Data").toString());
+            	}
                 
             }
             
-        String state=packagedata.getState();
+            if(packagedata.has("Datahead")) {
+            	JSONArray array=(JSONArray)(packagedata.get("Indexlist"));
+            	for(int i=0;i<array.length();i++) {
+            		writeBytes(serverthreads.get(array.getInt(i)),(JSONObject)packagedata.getJSONObject("Datahead"));
+            	}
+            }
+            
+        String state=(String)packagedata.get("Mode");
 		if(state.equals("q")||state.equals("oq"))
 			return false;
 		else if(state.equals("o"))

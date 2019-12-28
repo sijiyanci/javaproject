@@ -1,5 +1,5 @@
 package Entity;
-
+import net.sf.json.JSONObject;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -7,7 +7,13 @@ import java.net.Socket;
 public class Client {
 	public static String username;
 	public static Socket socket;
-
+	public static JSONObject reqPackage(String type,String reqtype,User user) {
+		JSONObject reqdata=new JSONObject();
+		reqdata.put("Type", type);
+		reqdata.put("Reqtype", reqtype);
+		reqdata.put("User", user);
+		return reqdata;
+	}
 	public static void main(String[] arg) throws Exception{
 		
 		System.out.println("start");
@@ -24,95 +30,99 @@ public class Client {
 			System.out.print("password : ");
 			password=br.readLine();
 			System.out.println("]");
-			Require temp=new Require("Require",reqtype,new User(username,password));
-			oos.writeObject(temp);
+			//Require temp=new Require("Require",reqtype,new User(username,password));
+			JSONObject temp=reqPackage("Require",reqtype,new User(username,password));
+			oos.writeObject(temp.toString());
 			ObjectInputStream ios = new ObjectInputStream(socket.getInputStream());
-			Response receive=(Response)ios.readObject();
+			String receive=(String)ios.readObject();
+			JSONObject rdata=JSONObject.fromObject(receive);
 			/*System.out.println(receive.toString());*/
-			if(receive.getState()==true) {
-				System.out.println("you have enter the chatroom");
-				Client.username=receive.getUsername();
+			if((Boolean)rdata.get("State")==true) {
+				System.out.println((String)rdata.get("Username")+"you have enter the chatroom");
+				System.out.println("read:");
+				br.readLine();
+				/*Client.username=receive.getUsername();
 				Client.socket=socket;
-				break;
+				break;*/
 			}else {
 				System.out.println("your username or password error");
 			}
 		}
 		
-			new Thread(new Runnable() {
-				public void run() {
-					while(true) {
-						try {
-							ObjectInputStream ois=new ObjectInputStream(Client.socket.getInputStream());
-							Data data=(Data)ois.readObject();
-							
-							System.out.println("");
-							if(data.getType().equals("Response")) {
-								Response resdata=(Response)data;
-								//signin & signup 是处理其他人收到某人的登录注册成功信息，失败的话不会收到；
-								if(resdata.getRestype().equals("Signin")||resdata.getRestype().equals("Signup")) {
-									System.out.println(resdata.getUsername()+" enters this chatroom");
-									System.out.println("userlist = "+Response.toString(resdata.getUserlist()));
-								}else if(resdata.getRestype().equals("Quit")){
-									if(resdata.getUsername().equals(Client.username)) {
-										System.out.println("you quit");
-										break;
-									}else {
-										System.out.println(resdata.getUsername()+" exit the chatroom");
-									}
-									
-								}
-							}else if(data.getType().equals("Message")) {
-								Message mesdata=(Message)data;
-								System.out.println(mesdata.getUserfrom()+" say : "+mesdata.getWords());
-							}
-							
-							//socket.shutdownInput();
-							//ois.close();
-						}catch(Exception e) {
-							e.printStackTrace();
-							break;
-						}
-					}
-					
-				}
-			}).start();
-			new Thread(new Runnable() {
-				public void run() {
-					while(true) {
-						try {
-							ObjectOutputStream oos = new ObjectOutputStream(Client.socket.getOutputStream());
-							BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-							System.out.println("[");
-							String type;
-							System.out.print("type : ");
-							type=br.readLine();
-							if(type.equals("Require")) {
-								Require reqdata=new Require("Require","Quit",new User(Client.username,"uuu"));
-								oos.writeObject(reqdata);
-								
-								//break;
-							}else if(type.equals("Message")) {
-								String userto,words;
-								System.out.print("userto : ");
-								userto=br.readLine();
-								System.out.print("words : ");
-								words=br.readLine();
-								Message mesdata=new Message("Message",Client.username,userto,words);
-								oos.writeObject(mesdata);
-							}
-							System.out.println("]");
-							
-							
-							//socket.shutdownOutput();
-							//oos.close();
-						}catch(Exception e) {
-							e.printStackTrace();
-							break;
-						}
-					}
-				}
-			}).start();
+//			new Thread(new Runnable() {
+//				public void run() {
+//					while(true) {
+//						try {
+//							ObjectInputStream ois=new ObjectInputStream(Client.socket.getInputStream());
+//							Data data=(Data)ois.readObject();
+//							
+//							System.out.println("");
+//							if(data.getType().equals("Response")) {
+//								Response resdata=(Response)data;
+//								//signin & signup 是处理其他人收到某人的登录注册成功信息，失败的话不会收到；
+//								if(resdata.getRestype().equals("Signin")||resdata.getRestype().equals("Signup")) {
+//									System.out.println(resdata.getUsername()+" enters this chatroom");
+//									System.out.println("userlist = "+Response.toString(resdata.getUserlist()));
+//								}else if(resdata.getRestype().equals("Quit")){
+//									if(resdata.getUsername().equals(Client.username)) {
+//										System.out.println("you quit");
+//										break;
+//									}else {
+//										System.out.println(resdata.getUsername()+" exit the chatroom");
+//									}
+//									
+//								}
+//							}else if(data.getType().equals("Message")) {
+//								Message mesdata=(Message)data;
+//								System.out.println(mesdata.getUserfrom()+" say : "+mesdata.getWords());
+//							}
+//							
+//							//socket.shutdownInput();
+//							//ois.close();
+//						}catch(Exception e) {
+//							e.printStackTrace();
+//							break;
+//						}
+//					}
+//					
+//				}
+//			}).start();
+//			new Thread(new Runnable() {
+//				public void run() {
+//					while(true) {
+//						try {
+//							ObjectOutputStream oos = new ObjectOutputStream(Client.socket.getOutputStream());
+//							BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+//							System.out.println("[");
+//							String type;
+//							System.out.print("type : ");
+//							type=br.readLine();
+//							if(type.equals("Require")) {
+//								Require reqdata=new Require("Require","Quit",new User(Client.username,"uuu"));
+//								oos.writeObject(reqdata);
+//								
+//								//break;
+//							}else if(type.equals("Message")) {
+//								String userto,words;
+//								System.out.print("userto : ");
+//								userto=br.readLine();
+//								System.out.print("words : ");
+//								words=br.readLine();
+//								Message mesdata=new Message("Message",Client.username,userto,words);
+//								oos.writeObject(mesdata);
+//							}
+//							System.out.println("]");
+//							
+//							
+//							//socket.shutdownOutput();
+//							//oos.close();
+//						}catch(Exception e) {
+//							e.printStackTrace();
+//							break;
+//						}
+//					}
+//				}
+//			}).start();
 		
 //		while(true) {
 //			ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());

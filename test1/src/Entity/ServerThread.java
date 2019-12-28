@@ -1,7 +1,7 @@
 package Entity;
 import java.io.ObjectInputStream;
 import java.net.Socket;
-
+import net.sf.json.JSONObject;
 public class ServerThread extends Thread{
 	private Socket client;
 	private String username;
@@ -19,7 +19,7 @@ public class ServerThread extends Thread{
 	public void setUsername(String username){
 		this.username=username;
 	}
-
+	
 	public void run() {
 		while(true) {
 			try {
@@ -35,9 +35,9 @@ public class ServerThread extends Thread{
 					System.out.println(me.getUserfrom()+" "+me.getUserto()+" "+me.getWords());
 				}*/												//Require Message
 				
-				Data indata=DataMenager.serverReceive(this);
+				JSONObject indata=DataMenager.serverReceive(this);
 				System.out.println(indata.toString());
-				Package packagedata=DataMenager.resolveData(this, indata);
+				JSONObject packagedata=DataMenager.resolveData(this, indata);
 				System.out.println(packagedata.toString());
 				//System.out.println(packagedata.getIndex().toString()+" "+packagedata.getState()+" "+packagedata.getData().getType());
 				if(!DataMenager.serverWrite(this, packagedata)){

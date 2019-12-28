@@ -6,5 +6,11 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="D:/Downloads/json_all-master/json_all-master/commons-beanutils.jar"/>
+	<classpathentry kind="lib" path="D:/Downloads/json_all-master/json_all-master/commons-collections-3.0.jar"/>
+	<classpathentry kind="lib" path="D:/Downloads/json_all-master/json_all-master/commons-lang-2.1.jar"/>
+	<classpathentry kind="lib" path="D:/Downloads/json_all-master/json_all-master/commons-logging.jar"/>
+	<classpathentry kind="lib" path="D:/Downloads/json_all-master/json_all-master/ezmorph-1.0.2.jar"/>
+	<classpathentry kind="lib" path="D:/Downloads/json_all-master/json_all-master/json-lib-1.1-jdk13.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

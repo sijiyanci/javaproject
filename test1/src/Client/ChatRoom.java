@@ -69,6 +69,7 @@ public class ChatRoom {
 	private JList<String> userList;
 
 	private Socket socket;
+	private String[] userlist;
 	//private static FileInputStream doc_read; 		// 读本地文件
 	//private static FileOutputStream fos; 		// 写本地文件
 	private MessageThread messageThread;		// 负责接收消息的线程
@@ -83,12 +84,13 @@ public class ChatRoom {
 	//private Gson mGson;
 	//private boolean file_is_create = true;
 
-	public static void main(String[] args) {
+/*	public static void main(String[] args) {
 		new ChatRoom("bbb",new Socket());
-		}
-	public ChatRoom(String name, Socket socket) {
+		}*/
+	public ChatRoom(String name, Socket socket, String[] userlist_) {
 		this.socket = socket;
 		this.name = name;
+		this.userlist = userlist_;
 		
 		frame = new JFrame(name);
 		frame.setVisible(true); 
@@ -181,6 +183,33 @@ public class ChatRoom {
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);	
 		
 		ConnectServer();// 连接服务器
+		
+//--------初始化用户列表
+		String username = null;
+		//String userIp = null;
+		for (int i = 0; i < userlist.length; i++) {
+			if (userlist[i] == null)
+				break;
+			username = userlist[i] ;
+			//userIp = str_msg[i + 1];
+			//User user = new User(username, userIp);
+			onLineUsers.put(username, username);
+			if (listModel.contains(username))
+				;
+			else
+				listModel.addElement(username);
+			int len = comboBox.getItemCount();
+			int _i = 0;
+			for (; _i < len; _i++) {
+				if (comboBox.getItemAt(_i).toString().equals(username))
+					break;
+			}
+			if (_i == len)
+				comboBox.addItem(username);
+			else
+				;
+		}
+		
 		
 		// txt_msg回车键时事件
 		txt_msg.addActionListener(new ActionListener() {
@@ -335,12 +364,13 @@ public class ChatRoom {
 						if(data.getType().equals("Response")) {
 							Response resdata=(Response)data;
 							//signin & signup 是处理其他人收到某人的登录注册成功信息，失败的话不会收到；
-							//if(resdata.getRestype().equals("Signin")||resdata.getRestype().equals("Signup")) {
-							if(resdata.getRestype().equals("Signin")) {
+							if(resdata.getRestype().equals("Signin")||resdata.getRestype().equals("Signup")) {
+							//if(resdata.getRestype().equals("Signin")) {
 								System.out.println(resdata.getUsername()+" enters this chatroom");
-								System.out.println("userlist = "+Response.toString(resdata.getUserlist()));
-								if(resdata.getUsername() != name)
+								System.out.println("userlist = "+ Response.toString(resdata.getUserlist()));
+								if(resdata.getUsername() != name) {
 									new onLinWindow(resdata.getUsername()).start();
+								}
 								
 									String username = null;
 									//String userIp = null;
@@ -389,7 +419,7 @@ public class ChatRoom {
 							System.out.println("[ " + time + "] " + mesdata.getUserfrom()+" say : "+mesdata.getWords());
 						//	Document docs = text_show.getDocument();
 							
-							if(mesdata.getUserto() == "*") {		//群发消息
+							if(mesdata.getUserto().equals("*")) {		//群发消息
 							//	try {
 									String words = "[" + time + "]\r\n" + mesdata.getUserfrom() + " 说 : " + mesdata.getWords() + "\r\n\n";
 									//docs.insertString(docs.getLength(),words, attrset);// 对文本进行追加
@@ -399,9 +429,9 @@ public class ChatRoom {
 								}*/
 							}
 							else {
-								if(mesdata.getUserto() == name || mesdata.getUserfrom() == name) {
+								if(mesdata.getUserto().equals(name) || mesdata.getUserfrom().equals(name)) {
 								//	try {
-										String words = "[" + time + "]\r\n" + mesdata.getUserfrom()+"对"+ mesdata.getUserto()+"说"+"\r\n\n";
+										String words = "[" + time + "]\r\n" + mesdata.getUserfrom()+"对"+ mesdata.getUserto()+"说 : "+ mesdata.getWords()+"\r\n\n";
 										//docs.insertString(docs.getLength(),words,attrset);	// 对文本进行追加
 										recordPane.append(words);
 								/*	} catch (BadLocationException e) {

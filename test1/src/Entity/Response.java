@@ -14,7 +14,7 @@ public class Response extends Data{
             this.username=username;
             this.state=state;
             this.userlist=userlist;
-        }
+    }
     
     public String getRestype(){
         return restype;
