@@ -74,7 +74,7 @@ class DataMenager{
         if(((String)reqdata.get("Reqtype")).equals("Signup")){
         	
             if(Server.storagemanager.addUser(user)){
-
+            	System.out.println(user.getUsername()+" client connects!");
                 serverthreads.add(current);
                 current.setUsername(user.getUsername());
 
@@ -97,7 +97,7 @@ class DataMenager{
         }else if(((String)reqdata.get("Reqtype")).equals("Signin")){
         	
             if(Server.storagemanager.checkUser(user)){
-
+            	System.out.println(user.getUsername()+" client connects!");
                 serverthreads.add(current);
                 current.setUsername(user.getUsername());
 
@@ -190,6 +190,7 @@ class DataMenager{
     				(String)mesdata.get("Texttype"),(String)mesdata.get("Userfrom"),(String)mesdata.getString("Words"));
     	}else {
     		datahead=receiveBytes(current);
+    		
     		resmes=mesPackage("ClientMessage",(String)mesdata.get("Way"),
     				(String)mesdata.get("Texttype"),(String)mesdata.get("Userfrom"));
     	}
@@ -220,7 +221,7 @@ class DataMenager{
     }
     
     private static JSONObject receiveBytes(ServerThread current) throws Exception{
-    	DataInputStream dis = new DataInputStream(current.getClient().getInputStream());
+    	ObjectInputStream dis = new ObjectInputStream(current.getClient().getInputStream());
     	String filename = dis.readUTF();
         long filelength = dis.readLong();
         File file=new File("./src/cache/cache");
@@ -234,6 +235,9 @@ class DataMenager{
         	fos.flush();
         	}  
         fos.close();
+//        ObjectOutputStream ois = new ObjectOutputStream(current.getClient().getOutputStream());
+//        ois.writeObject(new String("End"));
+        
         JSONObject temp=new JSONObject();
         temp.put("Filename", filename);
         temp.put("Filelength", filelength);
@@ -241,7 +245,7 @@ class DataMenager{
     }
     
     private static void writeBytes(ServerThread other,JSONObject datahead) throws Exception{
-    	DataOutputStream dos = new DataOutputStream(other.getClient().getOutputStream());
+    	ObjectOutputStream dos = new ObjectOutputStream(other.getClient().getOutputStream());
     	String filename=(String)datahead.get("Filename");
     	long filelength=datahead.getLong("Filelength");
     	File file=new File("./src/cache/cache");
@@ -299,4 +303,17 @@ class DataMenager{
 			return true;
 		return true;
 	}
+    
+    public static void forcedReturn(ServerThread current)throws Exception {
+    	JSONObject resdata=resPackage("Response","Quit",current.getUsername()
+                ,false,new ArrayList<String>());
+                //Response temp=new Response("Response","Quit",reqdata.getUser().getUsername()
+                //,true,userlist);
+    	ArrayList<Integer> indexlist=new ArrayList<Integer>();
+                for(int i=0;i<serverthreads.size();i++){
+                    indexlist.add(i);
+                }
+        JSONObject packagedata = middlePackage(indexlist, resdata,"o");
+        serverWrite(current,packagedata);
+    }
 }

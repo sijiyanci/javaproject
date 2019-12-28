@@ -1,4 +1,5 @@
 package Entity;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import java.io.*;
 import java.net.InetAddress;
@@ -39,7 +40,7 @@ public class Client {
 		return mesdata;
 	}
 	private static JSONObject receiveBytes(Socket server,String texttype) throws Exception{
-    	DataInputStream dis = new DataInputStream(server.getInputStream());
+		ObjectInputStream dis = new ObjectInputStream(server.getInputStream());
     	String filename = dis.readUTF();
         long filelength = dis.readLong();
         File file=new File("./src/"+Client.username+"/"+filename+"."+texttype.toLowerCase());
@@ -65,7 +66,7 @@ public class Client {
         return temp;
     }
 	private static void writeBytes(Socket server,String texttype) throws Exception{
-    	DataOutputStream dos = new DataOutputStream(server.getOutputStream());
+		ObjectOutputStream dos = new ObjectOutputStream(server.getOutputStream());
     	File file=new File("./src/user1/user1."+texttype.toLowerCase());
     	String filename=file.getName();
     	long filelength=file.length();
@@ -85,6 +86,9 @@ public class Client {
         	dos.write(bytes, 0, length);
         	dos.flush();
         }
+        
+        
+        
         System.out.println(new String(bytes));
         System.out.print(filename+" ");
         System.out.println(filelength);
@@ -145,8 +149,8 @@ public class Client {
 								//signin & signup 是处理其他人收到某人的登录注册成功信息，失败的话不会收到；
 								if(data.get("Reqtype").equals("Signin")||data.get("Reqtype").equals("Signup")) {
 									System.out.println(data.get("Username")+" enters this chatroom");
-									
-									System.out.println("usernamelist = "+data.get("Usernamelist").toString());//！！！
+									JSONArray usernamelist=(JSONArray)data.get("Usernamelist");
+									System.out.println("usernamelist = "+usernamelist.toString());//！！！
 								
 								}else if(data.get("Reqtype").equals("Quit")){
 									if(data.get("Username").equals(Client.username)) {
@@ -194,7 +198,7 @@ public class Client {
 								JSONObject reqdata=reqPackage("Require","Quit",new User(Client.username,"***"));
 								oos.writeObject(reqdata.toString());
 								
-								//break;
+								break;
 							}else if(type.equals("ServerMessage")) {
 								String way,texttype="Words";
 								String words;

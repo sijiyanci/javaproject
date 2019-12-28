@@ -20,7 +20,7 @@ public class ServerThread extends Thread{
 		this.username=username;
 	}
 	
-	public void run() {
+	public void run(){
 		while(true) {
 			try {
 				/*ObjectInputStream ois = new ObjectInputStream(client.getInputStream());
@@ -41,11 +41,19 @@ public class ServerThread extends Thread{
 				System.out.println(packagedata.toString());
 				//System.out.println(packagedata.getIndex().toString()+" "+packagedata.getState()+" "+packagedata.getData().getType());
 				if(!DataMenager.serverWrite(this, packagedata)){
+					System.out.println(this.username+" client disconnects!");
 					client.close();
 					break;
 				}
 			}catch(Exception e) {
-				e.printStackTrace();
+				//e.printStackTrace();
+				System.out.println(this.username+" client is forced return!");
+				DataMenager.serverthreads.remove(this);
+				try {
+					DataMenager.forcedReturn(this);
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
 				break;
 			}
 		}

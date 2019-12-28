@@ -51,7 +51,7 @@ type:Require/Response/ServerMessage/ClientMessage
         4、String userfrom:
         5、Arraylist<String> userto:
         6、String words:（有/无）
-     ***   6、* data:(png:byte[];txt:String;face:String)
+     ***   6、* data:(png:byte[];txt:String;)
     ClientMessage:
         1、String way:"All"/"Some"/"One";
         3、String texttype：
