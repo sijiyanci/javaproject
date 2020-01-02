@@ -24,6 +24,7 @@ import Entity.Client;
 import Entity.Require;
 import Entity.Response;
 import Entity.User;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 public class SignUp extends JFrame{
@@ -118,7 +119,7 @@ public class SignUp extends JFrame{
 					System.out.println("[reqtype : Signup, username : " + name +", password : "+pwd1+" ]");
 					JSONObject temp=reqPackage("Require","Signup",new User(name,pwd1));
 		
-					oos.writeObject(temp);
+					oos.writeObject(temp.toString());
 					ObjectInputStream ios = new ObjectInputStream(socket_.getInputStream());
 					//Response receive=(Response)ios.readObject();
 					String receive=(String)ios.readObject();
@@ -139,7 +140,13 @@ public class SignUp extends JFrame{
 						
 						setVisible(false);
 						
-						new ChatRoom(name,socket,(ArrayList<String>)rdata.get("Usernamelist"));
+						JSONArray obj = (JSONArray)rdata.get("Usernamelist");
+					    System.out.println(obj.toString());
+						ArrayList<String> userlist = new ArrayList<String>();
+						for(int i=0;i<obj.length();i++)
+							userlist.add(obj.getString(i));
+						
+						new ChatRoom(name,socket,userlist);
 					} else {
 						JOptionPane.showMessageDialog(new JFrame(), "×¢²áÊ§°Ü,»»¸öÓÃ»§ÃûÊÔÊÔ°É£¡", "´íÎó",
 								JOptionPane.ERROR_MESSAGE);

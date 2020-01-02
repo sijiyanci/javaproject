@@ -145,7 +145,7 @@ class DataMenager{
     	}else if(way.equals("Some")||way.equals("One")) {
     		JSONArray userto=(JSONArray)mesdata.get("Userto");
     		//for(int i=0;i<userto.length();i++) {
-    		for(int i=0;i<userto.size();i++) {
+    		for(int i=0;i<userto.length();i++) {
     			for(int j=0;j<usernamelist.size();j++){
     				if(userto.get(i).equals(usernamelist.get(j)))
     					indexlist.add(j);
@@ -159,21 +159,23 @@ class DataMenager{
     	return indexlist;
     }
     
-    private static JSONObject mesPackage(String type,String way,String texttype,String userfrom,String words) {
+    private static JSONObject mesPackage(String type,String way,String texttype,String userfrom,ArrayList<String> usernamelist,String words) {
     	JSONObject resmes=new JSONObject();
     	resmes.put("Type", type);
     	resmes.put("Way", way);
     	resmes.put("Texttype", texttype);
     	resmes.put("Userfrom", userfrom);
+    	resmes.put("Usernamelist", usernamelist);
     	resmes.put("Words", words);
     	return resmes;
     }
-    private static JSONObject mesPackage(String type,String way,String texttype,String userfrom) {
+    private static JSONObject mesPackage(String type,String way,String texttype,String userfrom,ArrayList<String> usernamelist) {
     	JSONObject resmes=new JSONObject();
     	resmes.put("Type", type);
     	resmes.put("Way", way);
     	resmes.put("Texttype", texttype);
     	resmes.put("Userfrom", userfrom);
+    	resmes.put("Usernamelist", usernamelist);
     	return resmes;
     }
     
@@ -186,19 +188,24 @@ class DataMenager{
     	ArrayList<Integer> indexlist=mesWayResolve(mesdata);
     	JSONObject resmes;
     	JSONObject datahead=new JSONObject();
+    	ArrayList<String> usernamelist=new ArrayList<String>();
+    	for(int i:indexlist) {
+    		usernamelist.add(serverthreads.get(i).getUsername());
+    	}
+    	usernamelist.add(current.getUsername());
     	if(mesdata.get("Texttype").equals("Words")) {
     		resmes=mesPackage("ClientMessage",(String)mesdata.get("Way"),
-    				(String)mesdata.get("Texttype"),(String)mesdata.get("Userfrom"),(String)mesdata.getString("Words"));
+    				(String)mesdata.get("Texttype"),(String)mesdata.get("Userfrom"),usernamelist,(String)mesdata.getString("Words"));
     	}else {
     		datahead=receiveBytes(current);
     		
     		resmes=mesPackage("ClientMessage",(String)mesdata.get("Way"),
-    				(String)mesdata.get("Texttype"),(String)mesdata.get("Userfrom"));
+    				(String)mesdata.get("Texttype"),(String)mesdata.get("Userfrom"),usernamelist);
     	}
     	
         JSONArray fctype=(JSONArray)mesdata.get("Fctype");
        // for(int i=0;i<fctype.length();i++) {
-        for(int i=0;i<fctype.size();i++) {
+        for(int i=0;i<fctype.length();i++) {
         	switch(fctype.getString(i)) {
         	case "Anonymous":
         		anonymous_handle(resmes);
@@ -284,7 +291,7 @@ class DataMenager{
             	//ArrayList<Integer> array=(ArrayList<Integer>)JSONObject.toBean(packagedata, ArrayList<Integer>.class)
             	JSONArray array=(JSONArray)(packagedata.get("Indexlist"));
             	//for(int i=0;i<array.length();i++) {
-            	for(int i=0;i<array.size();i++) {
+            	for(int i=0;i<array.length();i++) {
             		Socket temp=serverthreads.get(array.getInt(i)).getClient();
                     ObjectOutputStream oos=new ObjectOutputStream(temp.getOutputStream());
                      oos.writeObject(packagedata.get("Data").toString());
@@ -295,7 +302,7 @@ class DataMenager{
             if(packagedata.has("Datahead")) {
             	JSONArray array=(JSONArray)(packagedata.get("Indexlist"));
             	//for(int i=0;i<array.length();i++) {
-            	for(int i=0;i<array.size();i++) {
+            	for(int i=0;i<array.length();i++) {
             		writeBytes(serverthreads.get(array.getInt(i)),(JSONObject)packagedata.getJSONObject("Datahead"));
             	}
             }

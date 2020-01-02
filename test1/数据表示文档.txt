@@ -64,3 +64,69 @@ sdfsdf
 =======
 remote
 >>>>>>> c2390b992ebe07147d311e3efe1e8e898b151197
+server->client：
+继承Data：
+   数据成员String type：用来表示数据包是什么类型；
+1、Guidata：回应登录注册失败的数据类->client重新显示新的jframe；（发给个人的）
+   数据成员：String jftype:表示是应显示登录还是注册界面；
+2、Message:
+   数据成员：String mtype:表示是以下哪种类型；
+            String userfrom:表示是谁发的；
+            String words：表示说的话；
+            String userto:表示发给谁；
+  (1)quit:回应退出聊天室的数据类->client终止receive thread（发给某个人）；
+           回应某人离开聊天室，让其他用户在消息框显示“某人退出”（发给所有人）
+  (2)signin:回应登录注册成功的数据类->client显示chatroom的jframe（发给个人的）；
+            回应某人进入聊天室，让其他用户在消息框显示“某人进入”（发给所有人）
+  (3)normal:发某人的话给所有用户（发给所有人）；
+  (4)anonymous:发某人的匿名消息给所有用户(发给所有人)；
+  (5)private:发某人的消息给某个用户（发给个人）；
+   
+   client->server:
+   继承Data：
+   1、information:登录注册的请求的数据类->server进行检查；
+      数据成员：String username:表示用户名；
+               String password：表示密码；
+   2、Message：
+     (1)
+     (3)
+     (4)
+     (5).
+
+
+client->server:
+1、Require请求类:（需要服务端进行处理）
+   数据成员：String reqtype:客户端表示是登录、注册、退出
+            String username：
+            String password：
+   （1）请求登录/注册：
+   （2）请求退出：
+2、Message转发类:(服务端直接进行转发)（服务端会执行操作：发给个人或发给全部人；但不修改里面的内容）
+   数据成员：String userfrom:
+            String userto:（群聊的话就“*”，私聊则某人的username）
+            String words:
+（1）正常消息：
+（2）匿名消息：(客户端进行匿名处理)
+（3）私聊消息：
+
+server->client
+1、response回应类：（需要服务端进行处理）
+   数据成员：String restype:服务端表示是登录、注册、退出（回应退出是为了终止客户端的receive thread）
+               String username：
+               boolean state：表示注册成功或失败,（虽然还没想过，但也可能表示退出失败）
+               String[] userlist:
+   （1）回应登录：
+      登录/注册成功：
+      登录/注册失败：【这个是不会发给其他人】
+   （2）回应退出：
+2、Message转发类：（服务端直接进行转发）
+（1）
+（2）
+（3）
+
+
+<<<<<<< HEAD
+sdfsdf
+=======
+remote
+>>>>>>> c2390b992ebe07147d311e3efe1e8e898b151197

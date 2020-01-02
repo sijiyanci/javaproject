@@ -36,7 +36,6 @@ import Entity.Require;
 import Entity.Response;
 import Entity.User;
 import net.sf.json.JSONObject;
-import net.sf.json.JsonConfig;
 import net.sf.json.JSONArray;
 
 @SuppressWarnings("unused")
@@ -205,9 +204,13 @@ public class Login extends JFrame{
 					}
 					//System.out.println("this");
 					setVisible(false);
-					List<String> list = JSONArray.toList(rdata.getJSONArray("Usernamelist"), String.class,new JsonConfig());
-					//List<String> list = JSONObject.parseArray(rdata.get("Usernamelist").toJSONString(), String.class);
-					ArrayList<String> userlist = new ArrayList<String>(list);
+					
+					JSONArray obj = (JSONArray)rdata.get("Usernamelist");
+				    //System.out.println(obj.toString());
+					ArrayList<String> userlist = new ArrayList<String>();
+					for(int i=0;i<obj.length();i++)
+						userlist.add(obj.getString(i));
+					
 					new ChatRoom(name,socket,userlist);
 					
 				} else {

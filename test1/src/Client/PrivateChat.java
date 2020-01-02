@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -51,6 +52,7 @@ import javax.swing.text.StyledDocument;
 
 import Client.ChatRoom.MessageThread;
 import Client.ChatRoom.MyFileFilter;
+import Entity.Client;
 import Entity.User;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -86,15 +88,15 @@ public class PrivateChat {
 	//private String[] userlist;
 	private ArrayList<String> userlist;
 	private ArrayList<String> fctype=new ArrayList<String>();
-	private static FileInputStream doc_read; 		// 读本地文件
-	private static FileOutputStream fos; 		// 写本地文件
+	//private static FileInputStream doc_read; 		// 读本地文件
+	//private static FileOutputStream fos; 		// 写本地文件
 	private MessageThread messageThread;		// 负责接收消息的线程
 	//private Map<String, User_> onLineUsers = new HashMap<String, User_>();// 所有在线用户
 	private Map<String, String> onLineUsers = new HashMap<String, String>();
 	private boolean isConnected = false;
 	private String name;
 	private String pic_path = null;
-	private String UserValue = "";
+	//private String UserValue = "";
 	private int info_ip_ = 0;
 	//private int flag = 0;
 	//private Gson mGson;
@@ -246,12 +248,12 @@ public class PrivateChat {
 		southPanel.add(btn_send);
 
 		btn_pic = new JButton("选择图片");		//和是否传图片
-		btn_pic.setBounds(470, 90, 90, 35);
+		btn_pic.setBounds(460, 90, 100, 35);
 		btn_pic.setForeground(Color.DARK_GRAY);
 		btn_pic.setFont(new Font("Microsoft JhengHei Light", Font.PLAIN, 15));
 		southPanel.add(btn_pic);
 		btn_anony = new JButton("匿名");		//匿名
-		btn_anony.setBounds(580, 90, 90, 35);
+		btn_anony.setBounds(580, 90, 100, 35);
 		btn_anony.setForeground(Color.DARK_GRAY);
 		btn_anony.setFont(new Font("Microsoft JhengHei Light", Font.PLAIN, 15));
 		southPanel.add(btn_anony);
@@ -302,8 +304,15 @@ public class PrivateChat {
 						Filechose();
 						try {
 							ObjectOutputStream dos = new ObjectOutputStream(socket.getOutputStream());
-					    	//File file=new File("./src/user1/user1."+texttype.toLowerCase());
-							File file = new File(pic_path);
+							
+							String way="All",texttype="Jpg";
+							ArrayList<String> userto = userlist;
+							JSONObject mesdata=mesPackage("ServerMessage",way,fctype,texttype,name,userto);
+							dos.writeObject(mesdata.toString());
+							
+							dos = new ObjectOutputStream(socket.getOutputStream());
+					    	File file=new File("./src/user1/user1."+texttype.toLowerCase());
+							//File file = new File(pic_path);
 							String filename=file.getName();
 					    	long filelength=file.length();
 					    	BufferedInputStream fis=new BufferedInputStream(new FileInputStream(file));
@@ -322,17 +331,31 @@ public class PrivateChat {
 					        	dos.write(bytes, 0, length);
 					        	dos.flush();
 					        }
+					      //显示图片  
+					        ImageIcon icon1= new ImageIcon(pic_path);
+					        ImageIcon icon = change(icon1,0.5);
+							// icon.
+							SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");// 设置日期格式
+							String time = df.format(new java.util.Date());
+							StyledDocument doc = text_show.getStyledDocument();
+							Document docs = text_show.getDocument();
+							try {
+								docs.insertString(docs.getLength(),
+										"[" + time + "]\r\n" + name+ " 说 : " + "\r\n", attrset);// 对文本进行追加
+								text_show.setCaretPosition(doc.getLength());
+								text_show.insertIcon(icon);
+								docs = text_show.getDocument();
+								docs.insertString(docs.getLength(), "\r\n", attrset);
+							} catch (BadLocationException e1) {
+								e1.printStackTrace();
+							}
+							
+					        fis.close();
 							System.out.println("文件上传完毕");
 						} catch (FileNotFoundException e1) {
 							System.out.println("文件不存在！");
 						} catch (IOException e2) {
 							System.out.println("文件写入异常");
-						} finally {
-							try {
-								doc_read.close();
-							} catch (IOException e1) {
-								e1.printStackTrace();
-							}
 						}
 					}
 				});
@@ -366,6 +389,16 @@ public class PrivateChat {
 			}
 			
 		//-----------------------------
+		public ImageIcon change(ImageIcon image,double i){//  i 为放缩的倍数
+			 
+	        int width=(int) (image.getIconWidth()*i);
+	        int height=(int) (image.getIconHeight()*i);
+	        Image img=image.getImage().getScaledInstance(width, height, Image.SCALE_DEFAULT);//第三个值可以去查api是图片转化的方式
+	        ImageIcon image2=new ImageIcon(img);
+	
+	        return image2;
+	
+		}
 			public static JSONObject reqPackage(String type,String reqtype,User user) {
 				JSONObject reqdata=new JSONObject();
 				reqdata.put("Type", type);
@@ -473,12 +506,16 @@ public class PrivateChat {
 					if(userlist.size()==2)
 						way="One";
 					ArrayList<String> userto = userlist; 
+					userto.remove(name);
 					JSONObject mesdata=mesPackage("ServerMessage",way,fctype,texttype,name,userto,message);
 					oos.writeObject(mesdata.toString());
 
-					String a = "[type : ServerMessage, way = "+way+", fctype(end with !) : "+ fctype.get(0)
-						+"texttype : Words, userto : *, data : "; 
+					String a = "[type : ServerMessage, way = All, fctype(end with !) : ";
+					if(fctype.size() != 0)
+						a += fctype.get(0);
+					a += ", texttype : Words, userto : *, data : "; 
 					System.out.println(a+message+"]");
+					
 					txt_msg.setText(null);
 				}catch(Exception e) {
 					e.printStackTrace();
@@ -543,7 +580,7 @@ public class PrivateChat {
 										
 											String username = null;
 											//String userIp = null;
-											for (int i = 0; i < usernamelist.size(); i++) {
+											for (int i = 0; i < usernamelist.length(); i++) {
 												if (usernamelist.getString(i) == null)
 													break;
 												username = usernamelist.getString(i) ;
@@ -607,7 +644,8 @@ public class PrivateChat {
 								       /* JSONObject temp=new JSONObject();
 								        temp.put("Filename", filename);
 								        temp.put("Filelength", filelength);*/
-								        ImageIcon icon = new ImageIcon("" + filename);
+								        ImageIcon icon1 = new ImageIcon("" + filename);
+								        ImageIcon icon = change(icon1,0.5);
 										// icon.
 										SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");// 设置日期格式
 										String time = df.format(new java.util.Date());
