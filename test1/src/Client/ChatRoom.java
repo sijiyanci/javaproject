@@ -11,17 +11,26 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -33,29 +42,35 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.border.TitledBorder;
+import javax.swing.filechooser.FileFilter;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 
+import Entity.Client;
 import Entity.Data;
 import Entity.Message;
 import Entity.Require;
 import Entity.Response;
 import Entity.User;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 
 public class ChatRoom {
 	@SuppressWarnings("unused")
 	private static final long serialVersionUID = 6704231622520334518L;
 	
 	private JFrame frame;
-	//private JTextPane text_show;		//显示聊天内容
-	private JTextArea recordPane;
+	private JTextPane text_show;		//显示聊天内容
+	//private JTextArea recordPane;
 	private JTextField txt_msg;
 	private JLabel info_name;
 	private JLabel info_ip;
 	private JButton btn_send;
 	private JButton btn_pic;
+	private JButton btn_anony;
 	private JPanel northPanel;		
 	private JPanel southPanel;
 	private JScrollPane rightScroll;		//滚动条
@@ -64,45 +79,53 @@ public class ChatRoom {
 	private JLabel lableTo;
 	private JComboBox<String> comboBox;		//下拉列表
 	private SimpleAttributeSet attrset;
+	private JButton btn_sure;	
+	private JButton btn_chat;
 	
 	private DefaultListModel<String> listModel;		//动态显示
 	private JList<String> userList;
 
 	private Socket socket;
-	private String[] userlist;
-	//private static FileInputStream doc_read; 		// 读本地文件
-	//private static FileOutputStream fos; 		// 写本地文件
+	//private String[] userlist;
+	private ArrayList<String> userlist;
+	private ArrayList<String> fctype=new ArrayList<String>();
+	private ArrayList<String> chat_userlist;
+	private static FileInputStream doc_read; 		// 读本地文件
+	private static FileOutputStream fos; 		// 写本地文件
 	private MessageThread messageThread;		// 负责接收消息的线程
 	//private Map<String, User_> onLineUsers = new HashMap<String, User_>();// 所有在线用户
 	private Map<String, String> onLineUsers = new HashMap<String, String>();
 	private boolean isConnected = false;
 	private String name;
-	//private String pic_path = null;
+	private String pic_path = null;
 	private String UserValue = "";
 	private int info_ip_ = 0;
-	private int flag = 0;
+	//private int flag = 0;
 	//private Gson mGson;
 	//private boolean file_is_create = true;
 
 /*	public static void main(String[] args) {
-		new ChatRoom("bbb",new Socket());
-		}*/
-	public ChatRoom(String name, Socket socket, String[] userlist_) {
+		String[] a= new String[1];
+		a[0]="abc";
+		new ChatRoom("abc",new Socket(),a);
+	}*/
+	
+	public ChatRoom(String name, Socket socket, ArrayList<String> object) {
 		this.socket = socket;
 		this.name = name;
-		this.userlist = userlist_;
+		this.userlist = object;
 		
 		frame = new JFrame(name);
 		frame.setVisible(true); 
 		frame.setBackground(Color.GRAY);
 		frame.setResizable(false); 		// 大小不可变
 		
-	/*	text_show = new JTextPane();
+		text_show = new JTextPane();
 		text_show.setEditable(false);
 		attrset = new SimpleAttributeSet();
-		StyleConstants.setFontSize(attrset, 15);*/
-		recordPane = new JTextArea();
-		recordPane.setEditable(false);	
+		StyleConstants.setFontSize(attrset, 15);
+		//recordPane = new JTextArea();
+		//recordPane.setEditable(false);	
 		
 		listModel = new DefaultListModel<>();
 		userList = new JList<>(listModel);
@@ -124,8 +147,8 @@ public class ChatRoom {
 		northPanel.setBorder(info_b);
 		
 		//中间的消息和在线成员
-		//rightScroll = new JScrollPane(text_show);
-		rightScroll = new JScrollPane(recordPane);
+		rightScroll = new JScrollPane(text_show);
+		//rightScroll = new JScrollPane(recordPane);
 		TitledBorder info_c = new TitledBorder("消息");
 		info_c.setTitleColor(Color.DARK_GRAY);
 		info_c.setTitleFont(new Font("Microsoft JhengHei Light", Font.PLAIN, 15));
@@ -149,21 +172,37 @@ public class ChatRoom {
 		btn_send.setFont(new Font("Microsoft JhengHei Light", Font.PLAIN, 18));
 		btn_send.setForeground(Color.DARK_GRAY);
 		southPanel.add(btn_send);
-		lableTo = new JLabel("请选择发送用户");		//	
-		lableTo.setBounds(20, 90, 110, 35);
+		
+		lableTo = new JLabel("选择私聊用户");		//	
+		lableTo.setBounds(20, 90, 100, 35);
 		lableTo.setFont(new Font("Microsoft JhengHei Light", Font.PLAIN, 15));
 		southPanel.setForeground(Color.DARK_GRAY);
 		southPanel.add(lableTo);
 		comboBox = new JComboBox<>();		//选择发送的人
 		comboBox.addItem("*");
-		comboBox.setBounds(160, 90, 100, 35);
+		comboBox.setBounds(140, 90, 90, 35);
 		comboBox.setForeground(Color.DARK_GRAY);
 		southPanel.add(comboBox);
+		btn_sure = new JButton("确定用户");		//确定键
+		btn_sure.setBounds(250, 90, 90, 35);
+		btn_sure.setFont(new Font("Microsoft JhengHei Light", Font.PLAIN, 15));
+		btn_sure.setForeground(Color.DARK_GRAY);
+		southPanel.add(btn_sure);
+		btn_chat = new JButton("创建私聊");		//创建私聊
+		btn_chat.setBounds(360, 90, 90, 35);
+		btn_chat.setFont(new Font("Microsoft JhengHei Light", Font.PLAIN, 15));
+		btn_chat.setForeground(Color.DARK_GRAY);
+		southPanel.add(btn_chat);
 		btn_pic = new JButton("选择图片");		//和是否传图片
-		btn_pic.setBounds(290, 90, 100, 35);
+		btn_pic.setBounds(470, 90, 90, 35);
 		btn_pic.setForeground(Color.DARK_GRAY);
 		btn_pic.setFont(new Font("Microsoft JhengHei Light", Font.PLAIN, 15));
 		southPanel.add(btn_pic);
+		btn_anony = new JButton("匿名");		//匿名
+		btn_anony.setBounds(580, 90, 90, 35);
+		btn_anony.setForeground(Color.DARK_GRAY);
+		btn_anony.setFont(new Font("Microsoft JhengHei Light", Font.PLAIN, 15));
+		southPanel.add(btn_anony);
 		
 		centerSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftScroll, rightScroll);
 		centerSplit.setDividerLocation(200);
@@ -184,32 +223,7 @@ public class ChatRoom {
 		
 		ConnectServer();// 连接服务器
 		
-//--------初始化用户列表
-		String username = null;
-		//String userIp = null;
-		for (int i = 0; i < userlist.length; i++) {
-			if (userlist[i] == null)
-				break;
-			username = userlist[i] ;
-			//userIp = str_msg[i + 1];
-			//User user = new User(username, userIp);
-			onLineUsers.put(username, username);
-			if (listModel.contains(username))
-				;
-			else
-				listModel.addElement(username);
-			int len = comboBox.getItemCount();
-			int _i = 0;
-			for (; _i < len; _i++) {
-				if (comboBox.getItemAt(_i).toString().equals(username))
-					break;
-			}
-			if (_i == len)
-				comboBox.addItem(username);
-			else
-				;
-		}
-		
+//--------------------
 		
 		// txt_msg回车键时事件
 		txt_msg.addActionListener(new ActionListener() {
@@ -223,12 +237,67 @@ public class ChatRoom {
 				ComboBoxValue();
 			}
 		});
+		
+		// btn_sure发送选择的私聊用户
+		btn_sure.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				chat_userlist.add(UserValue);
+			}
+		});
+		// btn_chat创建私聊
+		btn_chat.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				new PrivateChat(name,socket,chat_userlist);
+			}
+		});
+		// btn_anony是否匿名
+		btn_anony.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				fctype.add("Anonymous");
+			}
+		});
+		
 		// btn_pic发送图片事件
 		btn_pic.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-			
+				Filechose();
+				try {
+					ObjectOutputStream dos = new ObjectOutputStream(socket.getOutputStream());
+			    	//File file=new File("./src/user1/user1."+texttype.toLowerCase());
+					File file = new File(pic_path);
+					String filename=file.getName();
+			    	long filelength=file.length();
+			    	BufferedInputStream fis=new BufferedInputStream(new FileInputStream(file));
+			    	byte[] bytes = new byte[1024];    
+			        long times = (filelength%1024==0)?filelength/1024:filelength/1024+1;;
+					
+			        dos.writeUTF(filename);
+			        dos.flush();
+			        dos.writeLong(filelength);
+			        dos.flush();
+			        
+			        while(times!=0) {
+			        	times--;
+			        	int length=fis.read(bytes, 0, bytes.length);
+			        	
+			        	dos.write(bytes, 0, length);
+			        	dos.flush();
+			        }
+					System.out.println("文件上传完毕");
+				} catch (FileNotFoundException e1) {
+					System.out.println("文件不存在！");
+				} catch (IOException e2) {
+					System.out.println("文件写入异常");
+				} finally {
+					try {
+						doc_read.close();
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+				}
 			}
 		});
+		
 		// 关闭窗口时事件
 		frame.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {
@@ -270,15 +339,67 @@ public class ChatRoom {
 		});
 		
 	}
+	
+//-----------------------------
+	public static JSONObject reqPackage(String type,String reqtype,User user) {
+		JSONObject reqdata=new JSONObject();
+		reqdata.put("Type", type);
+		reqdata.put("Reqtype", reqtype);
+		reqdata.put("User", user);
+		return reqdata;
+	}
+	public static JSONObject mesPackage(String type,String way,ArrayList<String> fctype,String texttype
+			,String userfrom,ArrayList<String> userto,String words) {
+		JSONObject mesdata=new JSONObject();
+		mesdata.put("Type", type);
+		mesdata.put("Way", way);
+		mesdata.put("Fctype", fctype);
+		mesdata.put("Texttype", texttype);
+		mesdata.put("Userfrom", userfrom);
+		mesdata.put("Userto", userto);
+		mesdata.put("Words", words);
+		return mesdata;
+	}
+	public static JSONObject mesPackage(String type,String way,ArrayList<String> fctype,String texttype
+			,String userfrom,ArrayList<String> userto) {
+		JSONObject mesdata=new JSONObject();
+		mesdata.put("Type", type);
+		mesdata.put("Way", way);
+		mesdata.put("Fctype", fctype);
+		mesdata.put("Texttype", texttype);
+		mesdata.put("Userfrom", userfrom);
+		mesdata.put("Userto", userto);
+		return mesdata;
+	}
+	
 	public void ConnectServer() {
 		info_ip = new JLabel(socket.getLocalAddress().toString());
 		info_ip.setForeground(Color.WHITE);
 		info_ip.setFont(new Font("Microsoft JhengHei Light", Font.PLAIN, 18));
 		if (info_ip_ == 0) {
 			northPanel.add(info_ip);
-			onLineUsers.put(name, name);		//登录显示列表，但只有自己
-			listModel.addElement(name);
-			comboBox.addItem(name);
+				
+			String username = null;
+			//String userIp = null;
+			for (int i = 0; i < userlist.size(); i++) {
+				username = userlist.get(i);
+				onLineUsers.put(username, username);
+				listModel.addElement(username);
+				
+				int len = comboBox.getItemCount();
+				int _i = 0;
+				for (; _i < len; _i++) {
+					if (comboBox.getItemAt(_i).toString().equals(username))
+						break;
+				}
+				if (_i == len)
+					comboBox.addItem(username);
+				else
+					;
+			}
+			//onLineUsers.put(name, name);	
+			//listModel.addElement(name);
+			//comboBox.addItem(name);
 			JOptionPane.showMessageDialog(frame, name + " 连接服务器成功!");
 		}
 		info_ip_++;
@@ -294,8 +415,10 @@ public class ChatRoom {
 		try {
 			ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());	
 			System.out.println("[type : Require, reqtype : Quit , username = "+name+"]"); 
-			Require reqdata=new Require("Require","Quit",new User(name,"uuu"));
-			oos.writeObject(reqdata);
+			//Require reqdata=new Require("Require","Quit",new User(name,"uuu"));
+			//oos.writeObject(reqdata);
+			JSONObject reqdata=reqPackage("Require","Quit",new User(name,"***"));
+			oos.writeObject(reqdata.toString());
 			
 			messageThread.stop();// 停止接受消息线程
 		
@@ -311,46 +434,86 @@ public class ChatRoom {
 		}
 	}
 	
-	// 群聊、私聊选择，打包消息，更新列表
+	// 打包消息
 	public void ComboBoxValue() {
 		try {
 			ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream()); 
-			String a = "[type : Message, userto : "; 
 			String message = txt_msg.getText();
 			if (message == null || message.equals("")) {
 				JOptionPane.showMessageDialog(frame, "消息不能为空！", "错误", JOptionPane.ERROR_MESSAGE);
 				return;
 			}
+			//自己的message不会发给自己
+			SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");		// 设置日期格式
+			String time = df.format(new java.util.Date());
+			System.out.println("[ " + time + "] " + name+" say : "+ message);
+			Document docs = text_show.getDocument();
+				try {
+					String words = "[" + time + "]\r\n" + name + " 说 : " + message + "\r\n\n";
+					docs.insertString(docs.getLength(),words, attrset);// 对文本进行追加
+					//recordPane.append(words);
+				} catch (BadLocationException e) {
+					e.printStackTrace();
+				}
+			
+			String way = "All",texttype="Words";
+			ArrayList<String> userto = userlist; 
+			JSONObject mesdata=mesPackage("ServerMessage",way,fctype,texttype,name,userto,message);
+			oos.writeObject(mesdata.toString());
 			/*if (UserValue == "ALL") {
 				String userto = "*";
 				a += userto;
 				a += ", words : ";
 				Message mesdata=new Message("Message",name,userto,message); 
 				oos.writeObject(mesdata);
-			} else {*/
+			} else {
 				String userto = comboBox.getSelectedItem().toString();
 				a += userto;
 				a += ", words : ";
 				Message mesdata=new Message("Message",name,userto,message); 
 				oos.writeObject(mesdata);
-			//}
+			//}*/
+			String a = "[type : ServerMessage, way = Some, fctype(end with !) : "+ fctype.get(0)
+				+"texttype : Words, userto : *, data : "; 
 			System.out.println(a+message+"]");
 			txt_msg.setText(null);
 		}catch(Exception e) {
 			e.printStackTrace();
 		}
 	}
+	
+	// 文件选择，输出绝对路径
+		public void Filechose() {
+			JFileChooser jfc = new JFileChooser();
+			jfc.setCurrentDirectory(new File(""));
+			jfc.addChoosableFileFilter(new MyFileFilter());
+			// jfc.
+			JFrame pic_chose = new JFrame();
+			pic_chose.setVisible(false);
+			pic_chose.setBounds(100, 100, 800, 600);
+			if (jfc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+				pic_path = jfc.getSelectedFile().getAbsolutePath().toString();
+				System.out.println(pic_path);
+			}
+		}
+
+		// 文件类型过滤
+		class MyFileFilter extends FileFilter {
+			public boolean accept(File pathname) {
+				if (pathname.getAbsolutePath().endsWith(".gif") || pathname.isDirectory()
+						|| pathname.getAbsolutePath().endsWith(".png"))
+					return true;
+				return false;
+			}
+
+			public String getDescription() {
+				return "图像文件";
+			}
+		}
 
 	
 //--------------------------------
-	/*class User_ {
-		private String name;
-		private String ip;
-		public User_(String name,String ip) {
-			this.name = name;
-			this.ip = ip;
-		}
-	}*/
+	
 	class MessageThread extends Thread {
 		
 		public void run() {
@@ -358,26 +521,29 @@ public class ChatRoom {
 				try {
 					
 					ObjectInputStream ois=new ObjectInputStream(socket.getInputStream());
-					Data data=(Data)ois.readObject();
+					//Data data=(Data)ois.readObject();
+					String datastr=(String)ois.readObject();
+					JSONObject data=JSONObject.fromObject(datastr);
 					
-					if(flag==0) {
-						if(data.getType().equals("Response")) {
-							Response resdata=(Response)data;
+					
+						if(data.get("Type").equals("Response")) {
+							// resdata=(Response)data;
 							//signin & signup 是处理其他人收到某人的登录注册成功信息，失败的话不会收到；
-							if(resdata.getRestype().equals("Signin")||resdata.getRestype().equals("Signup")) {
+							if(data.get("Reqtype").equals("Signin")||data.get("Reqtype").equals("Signup")) {
 							//if(resdata.getRestype().equals("Signin")) {
-								System.out.println(resdata.getUsername()+" enters this chatroom");
-								System.out.println("userlist = "+ Response.toString(resdata.getUserlist()));
-								if(resdata.getUsername() != name) {
-									new onLinWindow(resdata.getUsername()).start();
+								System.out.println(data.get("Username")+" enters this chatroom");
+								JSONArray usernamelist=(JSONArray)data.get("Usernamelist");
+								System.out.println("userlist = "+ usernamelist.toString());
+								if(data.get("Username") != name) {
+									new onLinWindow((String) data.get("Username")).start();
 								}
 								
 									String username = null;
 									//String userIp = null;
-									for (int i = 0; i < resdata.getUserlist().length; i++) {
-										if (resdata.getUserlist()[i] == null)
+									for (int i = 0; i < usernamelist.size(); i++) {
+										if (usernamelist.getString(i) == null)
 											break;
-										username = resdata.getUserlist()[i] ;
+										username = usernamelist.getString(i) ;
 										//userIp = str_msg[i + 1];
 										//User user = new User(username, userIp);
 										onLineUsers.put(username, username);
@@ -397,76 +563,108 @@ public class ChatRoom {
 											;
 									}
 								
-							}else if(resdata.getRestype().equals("Quit")){
-								String username = resdata.getUsername();
+							}else if(data.get("Reqtype").equals("Quit")){
+								String username = (String) data.get("Username");
 								//User_ user = (User_) onLineUsers.get(username);
 								onLineUsers.remove(username);
 								listModel.removeElement(username);
 								comboBox.removeItem(username);
 								
-								if(resdata.getUsername().equals(name)) {
+								if(username.equals(name)) {
 									System.out.println("you quit");
 									break;
 								}else {
-									System.out.println(resdata.getUsername()+" exit the chatroom");
+									System.out.println(username+" exit the chatroom");
 								}
+							}
+						}else if(data.get("Type").equals("ClientMessage") && data.get("Way").equals("All")) {
+							if(data.get("Texttype").equals("Words")) {
+								SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");		// 设置日期格式
+								String time = df.format(new java.util.Date());
+								System.out.println("[ " + time + "] " + data.get("Userfrom")+" say : "+data.get("Words"));
+								Document docs = text_show.getDocument();
 								
-							}
-						}else if(data.getType().equals("Message")) {
-							SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");		// 设置日期格式
-							String time = df.format(new java.util.Date());
-							Message mesdata=(Message)data;
-							System.out.println("[ " + time + "] " + mesdata.getUserfrom()+" say : "+mesdata.getWords());
-						//	Document docs = text_show.getDocument();
-							
-							if(mesdata.getUserto().equals("*")) {		//群发消息
-							//	try {
-									String words = "[" + time + "]\r\n" + mesdata.getUserfrom() + " 说 : " + mesdata.getWords() + "\r\n\n";
-									//docs.insertString(docs.getLength(),words, attrset);// 对文本进行追加
-									recordPane.append(words);
-							/*	} catch (BadLocationException e) {
+								try {
+									String words = "[" + time + "]\r\n" +  data.get("Userfrom") + " 说 : " +data.get("Words") + "\r\n\n";
+									docs.insertString(docs.getLength(),words, attrset);// 对文本进行追加
+									//recordPane.append(words);
+								} catch (BadLocationException e) {
 									e.printStackTrace();
-								}*/
-							}
-							else {
-								if(mesdata.getUserto().equals(name) || mesdata.getUserfrom().equals(name)) {
-								//	try {
-										String words = "[" + time + "]\r\n" + mesdata.getUserfrom()+"对"+ mesdata.getUserto()+"说 : "+ mesdata.getWords()+"\r\n\n";
-										//docs.insertString(docs.getLength(),words,attrset);	// 对文本进行追加
-										recordPane.append(words);
-								/*	} catch (BadLocationException e) {
-										e.printStackTrace();
-									}*/
 								}
+								/*if(mesdata.getUserto().equals("*")) {		//群发消息
+									try {
+										String words = "[" + time + "]\r\n" + mesdata.getUserfrom() + " 说 : " + mesdata.getWords() + "\r\n\n";
+										docs.insertString(docs.getLength(),words, attrset);// 对文本进行追加
+										//recordPane.append(words);
+									} catch (BadLocationException e) {
+										e.printStackTrace();
+									}
+								}
+								else {
+									if(mesdata.getUserto().equals(name) || mesdata.getUserfrom().equals(name)) {
+										try {
+											String words = "[" + time + "]\r\n" + mesdata.getUserfrom()+"对"+ mesdata.getUserto()+"说 : "+ mesdata.getWords()+"\r\n\n";
+											docs.insertString(docs.getLength(),words,attrset);	// 对文本进行追加
+											//recordPane.append(words);
+										} catch (BadLocationException e) {
+											e.printStackTrace();
+										}
+									}
+								}*/
+						
+							}
+							//处理图片
+							else {
+								ObjectInputStream dis = new ObjectInputStream(socket.getInputStream());
+						    	String filename = dis.readUTF();
+						        long filelength = dis.readLong();
+						        //File file=new File("./src/"+name+"/"+filename+"."+texttype.toLowerCase());
+						        File file=new File("./src/"+name+"/"+filename);
+						        BufferedOutputStream fos=new BufferedOutputStream(new FileOutputStream(file,true));
+						        byte[] bytes = new byte[1024];    
+						        long times = (filelength%1024==0)?filelength/1024:filelength/1024+1;
+						        while(times!=0) {
+						        	System.out.println(times);
+						        	times--;
+						        	
+						        	int length=dis.read(bytes, 0, bytes.length);
+						        	fos.write(bytes, 0, length);
+
+						        	fos.flush();
+						        }  
+						        fos.close();
+						       /* JSONObject temp=new JSONObject();
+						        temp.put("Filename", filename);
+						        temp.put("Filelength", filelength);*/
+						        ImageIcon icon = new ImageIcon("" + filename);
+								// icon.
+								SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");// 设置日期格式
+								String time = df.format(new java.util.Date());
+								StyledDocument doc = text_show.getStyledDocument();
+								Document docs = text_show.getDocument();
+								try {
+									docs.insertString(docs.getLength(),
+											"[" + time + "]\r\n" + name + " 说 : " + "\r\n", attrset);// 对文本进行追加
+									text_show.setCaretPosition(doc.getLength());
+									text_show.insertIcon(icon);
+									docs = text_show.getDocument();
+									docs.insertString(docs.getLength(), "\r\n", attrset);
+								} catch (BadLocationException e) {
+									e.printStackTrace();
+								}
+
+						        System.out.print(filename+" ");
+						        System.out.println(filelength);
+							}
+							
+						}
+						else{
+							if( data.get("Way").equals("Some")|| data.get("Way").equals("One")) {
+								new PrivateChat(name,socket,chat_userlist,data);
 							}
 						}
 						
-						//服务器已关闭信号
-						/*if () {
-							Document docs = text_show.getDocument();
-							try {
-								docs.insertString(docs.getLength(), "服务器已关闭!\\r\\n", attrset);// 对文本进行追加
-							} catch (BadLocationException e) {
-								e.printStackTrace();
-							}
-							// text_show.add("服务器已关闭!\r\n", null);
-							closeCon();// 关闭连接
-							return;// 结束线程
-						}
-						// 人数已达上限信号
-						else if (command.equals("MAX")) {
-							closeCon();// 关闭连接
-							JOptionPane.showMessageDialog(frame, "服务器人数已满,请稍后再试！", "提示", JOptionPane.CANCEL_OPTION);
-							return;// 结束线程
-						}*/
-							
-					}
-					else if(flag == 1) {
-							// 客户端接收消息，处理图片
-							
-							
-						flag = 0;
-					}
+	
 				}catch (IOException e1) {
 					// ConnectServer();
 					e1.printStackTrace();

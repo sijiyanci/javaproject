@@ -10,12 +10,15 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseMotionListener;
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -26,11 +29,17 @@ import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
+
+
+import Entity.Client;
 import Entity.Require;
 import Entity.Response;
 import Entity.User;
+import net.sf.json.JSONObject;
+import net.sf.json.JsonConfig;
+import net.sf.json.JSONArray;
 
-
+@SuppressWarnings("unused")
 public class Login extends JFrame{
 	private static final long serialVersionUID = -6256528270698337060L;
 	private JTextField userName; // 用户名
@@ -46,16 +55,6 @@ public class Login extends JFrame{
 	public static Socket socket;
 	
 	public static void main(String[] args) {
-	/*	try {
-			socket = new Socket(InetAddress.getLocalHost().getHostName(), 9876);
-		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/
-		
 		Login frame = new Login();
 		frame.setVisible(true);
 	}
@@ -137,34 +136,9 @@ public class Login extends JFrame{
 		btnLogin.setPreferredSize(new Dimension(170, 40));
 		btnLogin.setFocusPainted(false);
 		contentPane.add(btnLogin);
-		btnLogin.addActionListener( new Signin()
-			/*	 new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				String name = userName.getText();
-				String pwd = String.valueOf(password.getPassword());
-				// 请求登录
-				try {
-					Socket socket = new Socket(InetAddress.getLocalHost().getHostName(), 9876);
-					ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-					Require temp=new Require("Require","Signin",new User(name,pwd));
-					System.out.println("[reqtype : Signin, username : " + name +", password : "+pwd+" ]");
-					oos.writeObject(temp);
-					ObjectInputStream ios = new ObjectInputStream(socket.getInputStream());
-					Response receive=(Response)ios.readObject();
-					if(receive.getState()==true) {
-						System.out.println("you have enter the chatroom");
-						Login.socket=socket;
-						setVisible(false);
-						new ChatRoom(name,Login.socket);
-					} else {
-						JOptionPane.showMessageDialog(new JFrame(), "用户名或密码错误！", "错误", JOptionPane.ERROR_MESSAGE);
-					}
-				} catch (IOException | ClassNotFoundException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}		
-			}
-		}*/);
+		
+		btnLogin.addActionListener( new Signin());
+		
 		//注册
 		btnRegister = new JButton("注册");
 		btnRegister.setBounds(37, 285, 170, 40);
@@ -186,11 +160,19 @@ public class Login extends JFrame{
 	
 	
 	//----------------------------------------------------
+	public static JSONObject reqPackage(String type,String reqtype,User user) {
+		JSONObject reqdata=new JSONObject();
+		reqdata.put("Type", type);
+		reqdata.put("Reqtype", reqtype);
+		reqdata.put("User", user);
+		return reqdata;
+	}
 	class Signin implements ActionListener {
 	/*	private Socket socket;
 		public Signin(Socket socket) {
 			this.socket = socket;
 		}*/
+		@SuppressWarnings("unchecked")
 		public void actionPerformed(ActionEvent e) {
 			
 			String name = userName.getText();
@@ -199,16 +181,35 @@ public class Login extends JFrame{
 			try {
 				Socket socket_ = new Socket(InetAddress.getLocalHost().getHostName(), 9876);
 				ObjectOutputStream oos = new ObjectOutputStream(socket_.getOutputStream());
-				Require temp=new Require("Require","Signin",new User(name,pwd));
+				//Require temp=new Require("Require","Signin",new User(name,pwd));
 				System.out.println("[reqtype : Signin, username : " + name +", password : "+pwd+" ]");
-				oos.writeObject(temp);
+				JSONObject temp=reqPackage("Require","Signin",new User(name,pwd));
+				
+				oos.writeObject(temp.toString());
 				ObjectInputStream ios = new ObjectInputStream(socket_.getInputStream());
-				Response receive=(Response)ios.readObject();
-				if(receive.getState()==true) {
+				//Response receive=(Response)ios.readObject();
+				String receive=(String)ios.readObject();
+				JSONObject rdata=JSONObject.fromObject(receive);
+				System.out.println(rdata.toString());
+				
+				if((Boolean)rdata.get("State")==true) {
 					System.out.println("you have enter the chatroom");
 					socket=socket_;
+					//System.out.println("this");
+					
+					File file=new File("./src/"+name,name);
+					File fileparent=file.getParentFile();
+					if(!file.exists()) {
+						System.out.println("exist");
+						fileparent.mkdir();
+					}
+					//System.out.println("this");
 					setVisible(false);
-					new ChatRoom(name,socket,receive.getUserlist());
+					List<String> list = JSONArray.toList(rdata.getJSONArray("Usernamelist"), String.class,new JsonConfig());
+					//List<String> list = JSONObject.parseArray(rdata.get("Usernamelist").toJSONString(), String.class);
+					ArrayList<String> userlist = new ArrayList<String>(list);
+					new ChatRoom(name,socket,userlist);
+					
 				} else {
 					JOptionPane.showMessageDialog(new JFrame(), "用户名或密码错误！", "错误", JOptionPane.ERROR_MESSAGE);
 				}

@@ -5,11 +5,13 @@ import java.awt.Container;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ArrayList;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -18,9 +20,11 @@ import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
+import Entity.Client;
 import Entity.Require;
 import Entity.Response;
 import Entity.User;
+import net.sf.json.JSONObject;
 
 public class SignUp extends JFrame{
 
@@ -65,42 +69,8 @@ public class SignUp extends JFrame{
 		btnRegister.setBackground(Color.LIGHT_GRAY);
 		btnRegister.setBounds(200, 220, 150, 50);
 		btnRegister.setFont(new Font("宋体", Font.BOLD, 20));
-		btnRegister.addActionListener(new Register()
-				/*new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				String name = userName.getText();
-				String pwd1 = String.valueOf(password.getPassword());
-				String pwd2 = String.valueOf(password2.getPassword());
-				//registerUser(name, pwd1, pwd2);
-				if (pwd1.equals(pwd2)) {
-					try {
-						ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-						Require temp=new Require("Require","Signup",new User(name,pwd1));
-						System.out.println("[reqtype : Signup, username : " + name +", password : "+pwd1+" ]");
-						oos.writeObject(temp);
-						ObjectInputStream ios = new ObjectInputStream(socket.getInputStream());
-						Response receive=(Response)ios.readObject();
-						if(receive.getState()==true) {
-							System.out.println("you have enter the chatroom");
-							JOptionPane.showMessageDialog(new JFrame(),
-									"注册成功！\n请记住您的账号和密码", "恭喜", JOptionPane.CLOSED_OPTION);
-						} else {
-							JOptionPane.showMessageDialog(new JFrame(), "注册失败,换个用户名试试吧！", "错误",
-									JOptionPane.ERROR_MESSAGE);
-						}
-					} catch (IOException | ClassNotFoundException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-				} else {
-					JOptionPane.showMessageDialog(new JFrame(), "两次输入密码不相同！", "错误",
-							JOptionPane.ERROR_MESSAGE);
-					password.setText("");
-					password2.setText("");
-					
-				}
-			}
-		}*/);
+		
+		btnRegister.addActionListener(new Register());
 
 		con.add(lableUser);
 		con.add(lablePwd);
@@ -121,6 +91,14 @@ public class SignUp extends JFrame{
 	}
 	
 //-----------------------------------------
+	public static JSONObject reqPackage(String type,String reqtype,User user) {
+		JSONObject reqdata=new JSONObject();
+		reqdata.put("Type", type);
+		reqdata.put("Reqtype", reqtype);
+		reqdata.put("User", user);
+		return reqdata;
+	}
+	
 	// 注册方法
 	class Register implements ActionListener  {
 	/*	private Socket socket;
@@ -136,17 +114,32 @@ public class SignUp extends JFrame{
 				try {
 					Socket socket_ = new Socket(InetAddress.getLocalHost().getHostName(), 9876);
 					ObjectOutputStream oos = new ObjectOutputStream(socket_.getOutputStream());
-					Require temp=new Require("Require","Signup",new User(name,pwd1));
+					//Require temp=new Require("Require","Signup",new User(name,pwd1));
 					System.out.println("[reqtype : Signup, username : " + name +", password : "+pwd1+" ]");
+					JSONObject temp=reqPackage("Require","Signup",new User(name,pwd1));
+		
 					oos.writeObject(temp);
 					ObjectInputStream ios = new ObjectInputStream(socket_.getInputStream());
-					Response receive=(Response)ios.readObject();
-					if(receive.getState()==true) {
+					//Response receive=(Response)ios.readObject();
+					String receive=(String)ios.readObject();
+					JSONObject rdata=JSONObject.fromObject(receive);
+					System.out.println(rdata.toString());
+					
+					if((Boolean)rdata.get("State")==true) {
 						JOptionPane.showMessageDialog(new JFrame(),
 								"注册成功！\n请记住您的账号和密码", "恭喜", JOptionPane.CLOSED_OPTION);
 						socket = socket_;
+						
+						File file=new File("./src/"+name,name);
+						File fileparent=file.getParentFile();
+						if(!file.exists()) {
+							System.out.println("exist");
+							fileparent.mkdir();
+						}
+						
 						setVisible(false);
-						new ChatRoom(name,socket,receive.getUserlist());
+						
+						new ChatRoom(name,socket,(ArrayList<String>)rdata.get("Usernamelist"));
 					} else {
 						JOptionPane.showMessageDialog(new JFrame(), "注册失败,换个用户名试试吧！", "错误",
 								JOptionPane.ERROR_MESSAGE);

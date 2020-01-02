@@ -144,7 +144,8 @@ class DataMenager{
             }
     	}else if(way.equals("Some")||way.equals("One")) {
     		JSONArray userto=(JSONArray)mesdata.get("Userto");
-    		for(int i=0;i<userto.length();i++) {
+    		//for(int i=0;i<userto.length();i++) {
+    		for(int i=0;i<userto.size();i++) {
     			for(int j=0;j<usernamelist.size();j++){
     				if(userto.get(i).equals(usernamelist.get(j)))
     					indexlist.add(j);
@@ -196,7 +197,8 @@ class DataMenager{
     	}
     	
         JSONArray fctype=(JSONArray)mesdata.get("Fctype");
-        for(int i=0;i<fctype.length();i++) {
+       // for(int i=0;i<fctype.length();i++) {
+        for(int i=0;i<fctype.size();i++) {
         	switch(fctype.getString(i)) {
         	case "Anonymous":
         		anonymous_handle(resmes);
@@ -281,7 +283,8 @@ class DataMenager{
             if(((String)packagedata.get("Mode")).equals("o")||((String)packagedata.get("Mode")).equals("oq")){
             	//ArrayList<Integer> array=(ArrayList<Integer>)JSONObject.toBean(packagedata, ArrayList<Integer>.class)
             	JSONArray array=(JSONArray)(packagedata.get("Indexlist"));
-            	for(int i=0;i<array.length();i++) {
+            	//for(int i=0;i<array.length();i++) {
+            	for(int i=0;i<array.size();i++) {
             		Socket temp=serverthreads.get(array.getInt(i)).getClient();
                     ObjectOutputStream oos=new ObjectOutputStream(temp.getOutputStream());
                      oos.writeObject(packagedata.get("Data").toString());
@@ -291,7 +294,8 @@ class DataMenager{
             
             if(packagedata.has("Datahead")) {
             	JSONArray array=(JSONArray)(packagedata.get("Indexlist"));
-            	for(int i=0;i<array.length();i++) {
+            	//for(int i=0;i<array.length();i++) {
+            	for(int i=0;i<array.size();i++) {
             		writeBytes(serverthreads.get(array.getInt(i)),(JSONObject)packagedata.getJSONObject("Datahead"));
             	}
             }
